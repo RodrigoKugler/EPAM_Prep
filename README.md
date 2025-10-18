@@ -1,365 +1,318 @@
-# 🚀 EPAM Data Integration Engineer - Complete Training System
+# 🚀 EPAM Data Integration Engineer - Interview Prep
 
-## 📋 Overview
+## 🎯 Quick Start (3 Steps)
 
-This is a **comprehensive, production-ready training system** designed to prepare you for the EPAM Data Integration Engineer interview. Everything you need is here - organized, structured, and ready to use.
+### Step 1: Set Your Interview Date (1 min)
+Open `PROGRESS_TRACKER.md` and fill in your target interview date at the top.
 
-**Created**: October 2024  
-**Based on**: Official EPAM Interview Preparation Guide  
-**Duration**: 3-6 weeks intensive training
-
----
-
-## 🎯 What's Included
-
-### ✅ Complete Training Materials
-- **6 Major Topic Areas** with deep-dive modules
-- **30+ Conceptual Questions** with detailed answers
-- **9 Technical Coding Problems** (actual EPAM interview questions)
-- **100+ Practice Exercises** across SQL and Python
-- **Complete Solutions** (kept separate to prevent cheating yourself!)
-- **Real Database** with sample data for hands-on practice
-
-### ✅ Structured Learning Path
-- **Master Game Plan** - 6-week roadmap
-- **Progress Tracker** - Daily checklist and metrics
-- **Interview Prep** - Question banks for both technical and conceptual
-- **Quick Reference** - Cheat sheets for rapid review
-
----
-
-## 📂 Project Structure
-
+### Step 2: Start Learning (Now!)
 ```
-EPAM_Prep/
-├── MASTER_GAME_PLAN.md          ⭐ Start here!
-├── PROGRESS_TRACKER.md           📊 Track your daily progress
-├── README.md                     📖 You are here
-│
-├── 01_SQL/                       🔵 SQL Training
-│   ├── 01_SQL_Basics.md
-│   ├── 02_Window_Functions.md
-│   ├── exercises/                (Problems only)
-│   └── solutions/                (Answers - check after!)
-│
-├── 02_Python/                    🐍 Python Training
-│   ├── 01_String_Manipulation.md
-│   ├── 02_JSON_Processing.md
-│   ├── exercises/
-│   └── solutions/
-│
-├── 03_Data_Warehousing/         🏗️ DWH Concepts
-│   ├── exercises/
-│   └── solutions/
-│
-├── 04_ETL_ELT/                  🔄 ETL/ELT
-│   ├── exercises/
-│   └── solutions/
-│
-├── 05_Cloud_Platforms/          ☁️ Cloud & Big Data
-│   ├── exercises/
-│   └── solutions/
-│
-├── 06_Apache_Airflow/           🌬️ Workflow Orchestration
-│   ├── exercises/
-│   └── solutions/
-│
-├── 07_System_Design/            🎨 Architecture & Design
-│   ├── exercises/
-│   └── solutions/
-│
-├── 08_Interview_Prep/           🎤 Interview Questions
-│   ├── Conceptual_Questions.md  (30 essential Q&A)
-│   ├── Technical_Questions.md   (9 EPAM coding problems)
-│   └── Technical_Solutions.md   (Check after attempting!)
-│
-└── database/                    💾 Practice Database
-    ├── setup_database.py
-    └── epam_practice.db         (SQLite database ready to use)
+Open: 01_SQL/01_SQL_Basics.md
+Read → Practice → Check Solutions
 ```
 
+### Step 3: Track Daily Progress
+Update `PROGRESS_TRACKER.md` after each study session.
+
+**That's it. Start now!** ⬇️
+
 ---
 
-## 🚀 Quick Start (5 Minutes)
+## 📚 What's Inside
 
-### Step 1: Review the Master Plan
-```bash
-# Open and read
-MASTER_GAME_PLAN.md
+This is a complete training system based on the official EPAM preparation guide. Everything you need is here:
+
+### 🔵 SQL Training (CRITICAL!)
+```
+01_SQL/
+├── 01_SQL_Basics.md              ← Start here
+├── 02_Window_Functions.md        ← EPAM's #1 favorite topic
+├── exercises/
+│   ├── 01_Basics_Exercises.md    (15 problems)
+│   └── 02_Window_Functions_Exercises.md (15 problems + EPAM simulations)
+└── solutions/                    ← Check AFTER attempting!
 ```
 
-### Step 2: Set Up Database (1 minute)
-```bash
-cd database
-python setup_database.py
+**Most Important:** Window Functions (running totals, ROW_NUMBER, LAG/LEAD)
+
+### 🐍 Python Training (CRITICAL!)
+```
+02_Python/
+├── 01_String_Manipulation.md     ← Word counting (EPAM favorite!)
+├── 02_JSON_Processing.md         ← Email domains (EPAM favorite!)
+├── exercises/
+│   ├── 01_String_Exercises.md    (10 problems)
+│   └── 02_JSON_Exercises.md      (10 problems)
+└── solutions/                    ← Check AFTER attempting!
 ```
 
-### Step 3: Start Training
-```bash
-# Begin with SQL basics
-01_SQL/01_SQL_Basics.md
+**Most Important:** Word counting & JSON parsing
+
+### 🎤 Interview Questions (GOLD!)
+```
+08_Interview_Prep/
+├── Conceptual_Questions.md       ← 30 Q&A the recruiter WILL ask
+├── Technical_Questions.md        ← 9 actual EPAM coding problems
+└── Technical_Solutions.md        ← Check AFTER attempting!
 ```
 
-### Step 4: Track Progress
-Update `PROGRESS_TRACKER.md` daily
+### 💾 Practice Database
+```
+database/
+├── setup_database.py             ← Run once to create DB
+└── epam_practice.db              ← SQLite database (ready to use)
+```
+
+**Already set up!** Just open in DBeaver or any SQL client.
 
 ---
 
-## 🎓 Training Approach
+## 🎯 The 3 Problems EPAM WILL Ask
 
-### Phase 1: Learn Concepts (30%)
-Read training modules, understand theory, take notes
+### 1. SQL: Cumulative Orders ⭐⭐⭐
+**Calculate running total of orders per customer**
 
-### Phase 2: Practice Exercises (50%)
-Solve exercises **WITHOUT** looking at solutions first
+Where: `01_SQL/02_Window_Functions.md`  
+Time limit: 10 minutes  
+Uses: ROW_NUMBER(), SUM() OVER()
 
-### Phase 3: Review & Refine (20%)
-Check solutions, understand mistakes, retry weak areas
+### 2. Python: Word Counting ⭐⭐⭐
+**Count words from input (case-insensitive)**
 
----
+Where: `02_Python/01_String_Manipulation.md`  
+Time limit: 10 minutes  
+Uses: Counter, .lower(), .split()
 
-## 🔥 Critical Topics (MUST Master)
+### 3. Python: Email Domains ⭐⭐⭐
+**Extract unique domains from JSON**
 
-### 1. SQL Window Functions ⭐⭐⭐
-- ROW_NUMBER, RANK, DENSE_RANK
-- LAG, LEAD
-- Running totals (EPAM favorite!)
-- **Practice**: `01_SQL/exercises/02_Window_Functions_Exercises.md`
+Where: `02_Python/02_JSON_Processing.md`  
+Time limit: 12 minutes  
+Uses: json.load(), set comprehension
 
-### 2. Python JSON Processing ⭐⭐⭐
-- Parse JSON files
-- Extract email domains (EPAM favorite!)
-- Transform data structures
-- **Practice**: `02_Python/exercises/02_JSON_Exercises.md`
-
-### 3. Python String Manipulation ⭐⭐⭐
-- Word counting (EPAM favorite!)
-- Case-insensitive operations
-- Collections (Counter)
-- **Practice**: `02_Python/exercises/01_String_Exercises.md`
-
-### 4. SQL JOINs ⭐⭐
-- INNER, LEFT, RIGHT joins
-- SELF joins
-- Multi-table joins
-
-### 5. Data Warehousing Concepts ⭐⭐
-- Star vs Snowflake schemas
-- SCD Types (1, 2, 3)
-- Fact vs Dimension tables
+**Master these 3 = You're 80% ready!**
 
 ---
 
-## 📊 The 9 EPAM Problems
+## 📅 Your 3-Week Study Plan
 
-These are the ACTUAL coding problems from EPAM interviews:
+### Week 1: SQL Mastery
+- **Day 1-2**: SQL Basics + 15 exercises
+- **Day 3-5**: Window Functions + 15 exercises + EPAM problems
+- **Weekend**: Speed practice, timed runs
 
-1. **Cumulative Orders** (SQL) - Running totals per customer ⭐⭐⭐
-2. **Managers with 5+ Reports** (SQL) - GROUP BY + HAVING ⭐⭐
-3. **Employee Bonus** (SQL) - LEFT JOIN ⭐⭐
-4. **Same Salary Employees** (SQL) - SELF JOIN ⭐⭐
-5. **Classes with 5+ Students** (SQL) - Simple aggregation ⭐
-6. **First Year Sales** (SQL) - Window functions ⭐⭐
-7. **Student Lookup** (SQL) - Basic WHERE ⭐
-8. **Word Counting** (Python) - String + Counter ⭐⭐⭐
-9. **Email Domain Extraction** (Python) - JSON parsing ⭐⭐⭐
+**Goal:** Solve window function problems in < 10 min
 
-**Find them in**: `08_Interview_Prep/Technical_Questions.md`  
-**Solutions in**: `08_Interview_Prep/Technical_Solutions.md` (attempt first!)
+### Week 2: Python Mastery
+- **Day 1-2**: String Manipulation + 10 exercises
+- **Day 3-4**: JSON Processing + 10 exercises
+- **Day 5**: Combined practice
+- **Weekend**: Speed practice all 9 EPAM problems
 
----
+**Goal:** Solve word counting in < 10 min, JSON in < 12 min
 
-## 💡 Study Tips
+### Week 3: Concepts + Mock Interview
+- **Day 1-3**: Study all 30 conceptual questions
+- **Day 4**: Full mock interview (all 9 problems)
+- **Day 5**: Review weak spots
+- **Weekend**: Final review + confidence building
 
-1. **Consistency > Intensity**
-   - 2 hours daily > 14 hours on Sunday
+**Goal:** Answer any conceptual question confidently
 
-2. **Active Learning**
-   - Write code, don't just read
-   - Explain concepts out loud
-
-3. **Timed Practice**
-   - SQL problems: < 10 minutes each
-   - Python problems: < 15 minutes each
-
-4. **Review Mistakes**
-   - Keep error log
-   - Retry failed problems
-
-5. **Mock Interviews**
-   - Week 3: SQL + Python basics
-   - Week 5: Full technical interview
+**Detailed schedule:** See `PROGRESS_TRACKER.md`
 
 ---
 
-## 🎯 Success Metrics
+## 🎓 Daily Study Routine
+
+### Option 1: Morning Study (2 hours)
+- 08:00-09:00: Read one module
+- 09:00-10:00: Do exercises
+
+### Option 2: Evening Study (2 hours)
+- 19:00-20:00: Read one module
+- 20:00-21:00: Do exercises
+
+### Option 3: Intensive (4 hours)
+- 2 hours: New material
+- 1 hour: Exercises
+- 1 hour: Review + speed practice
+
+**Pick one and stick to it!**
+
+---
+
+## 📊 Success Checklist
 
 Before your interview, you should be able to:
 
-### Technical Skills
-- [ ] Write window functions without reference
-- [ ] Solve cumulative orders problem in < 10 min
-- [ ] Parse JSON and extract domains in < 12 min
+### Technical ✅
+- [ ] Write SQL window functions without reference
+- [ ] Solve cumulative orders in < 10 min
 - [ ] Count words (case-insensitive) in < 10 min
-- [ ] Explain all SCD types with examples
-- [ ] Design a star schema in < 15 min
+- [ ] Parse JSON and extract domains in < 12 min
+- [ ] Explain all 3 solutions clearly
 
-### Conceptual Knowledge
-- [ ] Explain ACID properties clearly
+### Conceptual ✅
+- [ ] Explain ACID properties
 - [ ] Compare OLTP vs OLAP
-- [ ] Describe ETL vs ELT
-- [ ] Explain window functions vs GROUP BY
-- [ ] Discuss data quality approaches
+- [ ] Describe SCD Type 1, 2, 3
+- [ ] Explain Star vs Snowflake schema
+- [ ] Discuss ETL vs ELT
 
-### Interview Readiness
-- [ ] Confident explaining solutions
-- [ ] Can handle follow-up questions
-- [ ] Comfortable with trade-off discussions
-- [ ] Ready to admit "I don't know, but..."
+### Interview Ready ✅
+- [ ] Solved all 9 EPAM problems
+- [ ] Can answer 25+ of 30 conceptual questions
+- [ ] Confident explaining your approach
+- [ ] Comfortable with follow-up questions
 
 ---
 
-## 📚 Key Resources
+## 💡 How to Use This System
+
+### The Golden Rule
+**Always attempt exercises BEFORE looking at solutions!**
+
+Struggling for 15-30 minutes is better than immediately reading the answer.
+
+### Study Flow
+1. **Read** the module (30-45 min)
+2. **Attempt** exercises (60-90 min)
+3. **Check** solutions only after trying
+4. **Retry** any you got wrong
+5. **Update** PROGRESS_TRACKER.md
+
+### Time Yourself
+- SQL problems: < 10 minutes each
+- Python problems: < 15 minutes each
+- Use a timer!
+
+### Track Everything
+- Update `PROGRESS_TRACKER.md` daily
+- Note your solve times
+- Track confidence levels
+
+---
+
+## 🔥 Critical Resources
 
 ### Inside This Project
-- `MASTER_GAME_PLAN.md` - Complete 6-week roadmap
-- `PROGRESS_TRACKER.md` - Daily progress tracking
-- `08_Interview_Prep/Conceptual_Questions.md` - 30 essential Q&A
-- `08_Interview_Prep/Technical_Questions.md` - 9 EPAM problems
+| File | Purpose | When to Use |
+|------|---------|-------------|
+| `PROGRESS_TRACKER.md` | Daily checklist | Every day |
+| `01_SQL/02_Window_Functions.md` | Window functions guide | Week 1 |
+| `02_Python/01_String_Manipulation.md` | String/word counting | Week 2 |
+| `02_Python/02_JSON_Processing.md` | JSON parsing | Week 2 |
+| `08_Interview_Prep/Conceptual_Questions.md` | 30 Q&A | Week 3 |
+| `08_Interview_Prep/Technical_Questions.md` | 9 EPAM problems | Throughout |
+| `QUICK_REFERENCE.md` | Cheat sheet | Interview day |
 
 ### External Resources
 - **SQL Practice**: LeetCode, HackerRank
-- **Python Practice**: Codewars, Python.org
-- **Data Warehousing**: "The Data Warehouse Toolkit" by Ralph Kimball
-- **Big Data**: Databricks Academy (free courses)
+- **Python Practice**: Codewars
+- **Database Tool**: DBeaver (free SQL client)
 
 ---
 
-## 🗓️ Training Schedule
-
-### 3-Week Intensive Track (40 hours/week)
-- **Week 1**: SQL (Basics, Window Functions, JOINs)
-- **Week 2**: Python (Strings, JSON, Pandas) + DWH Concepts
-- **Week 3**: Cloud, Airflow + Mock Interviews
-
-### 6-Week Balanced Track (20 hours/week)
-- **Weeks 1-2**: SQL mastery
-- **Weeks 3-4**: Python + Data Warehousing
-- **Weeks 5-6**: Cloud, Airflow, System Design + Mock Interviews
-
-**See**: `MASTER_GAME_PLAN.md` for detailed breakdown
-
----
-
-## 🎤 Interview Day Checklist
+## 🎤 Interview Day Prep
 
 ### 24 Hours Before
-- [ ] Review all cheat sheets
-- [ ] Speed-run the 9 EPAM problems
+- [ ] Speed-run all 9 EPAM problems
+- [ ] Review `QUICK_REFERENCE.md`
 - [ ] Review your error log
-- [ ] Get good sleep!
+- [ ] Get good sleep
 
-### Day Of Interview
+### Interview Day
+- [ ] Review `QUICK_REFERENCE.md` (30 min)
 - [ ] Test your environment (if remote)
-- [ ] Have a pen and paper ready
-- [ ] Stay calm and confident
-- [ ] Read questions carefully
+- [ ] Have pen and paper ready
+- [ ] Read problems carefully
 - [ ] Explain your thought process
-- [ ] Ask clarifying questions
 - [ ] Test your code with examples
 
----
-
-## 💪 Motivation
-
-> "Excellence is not a destination; it is a continuous journey that never ends."
-> - Brian Tracy
-
-You've prepared thoroughly. You have:
-- ✅ Complete training materials
-- ✅ Real practice problems
-- ✅ Comprehensive solutions
-- ✅ Structured learning path
-- ✅ Progress tracking system
-
-**You're ready to ace this interview!** 🚀
+**Open:** `QUICK_REFERENCE.md` for quick patterns and tips
 
 ---
 
-## 📞 Getting Help
+## ❓ FAQ
 
-### If You Get Stuck
-1. Re-read the relevant training module
-2. Try solving a similar but easier problem
-3. Look at hints (not full solutions)
-4. Take a break and come back
-5. Only then check the solution
+**Q: Where do I start?**  
+A: Open `01_SQL/01_SQL_Basics.md` right now.
 
-### Debugging Your Code
-1. Print intermediate results
-2. Test with simple examples first
-3. Check edge cases (NULL, empty, duplicates)
-4. Review the solution approach
+**Q: How long will this take?**  
+A: 3 weeks intensive (3-4 hours/day) or 6 weeks balanced (2 hours/day).
 
----
+**Q: What if I get stuck?**  
+A: 1) Re-read the module, 2) Try a simpler problem first, 3) Look at hints, 4) Only then check solution.
 
-## 🏆 After Completing Training
+**Q: Do I need to finish everything?**  
+A: No. Master the 3 critical problems + 30 conceptual questions = 80% ready.
 
-### Next Steps
-1. **Practice on LeetCode**: SQL and Python problems
-2. **Build a Project**: ETL pipeline or data dashboard
-3. **Get Certified**: AWS or GCP Data Engineer certification
-4. **Contribute**: Open source data engineering projects
-5. **Network**: Join data engineering communities
+**Q: Should I use the database?**  
+A: Yes! Hands-on practice is crucial. Open `database/epam_practice.db` in DBeaver.
 
-### Career Growth
-- Join EPAM as Data Integration Engineer
-- Build expertise in specific tools (Airflow, Spark, dbt)
-- Move toward Data Architect or Lead Engineer roles
-- Share knowledge through blogs or mentoring
+**Q: When should I do mock interviews?**  
+A: End of Week 2 and end of Week 3 (see `PROGRESS_TRACKER.md`).
 
 ---
 
-## 📈 Version History
+## 📈 What You Get
 
-- **v1.0** (Oct 2024) - Initial complete training system
-  - 100+ exercises
-  - 30 conceptual questions
-  - 9 EPAM technical problems
-  - Full database setup
-  - Complete solutions
+- ✅ **60+ Practice Exercises** (SQL + Python)
+- ✅ **30 Conceptual Questions** (with detailed answers)
+- ✅ **9 EPAM Coding Problems** (actual interview questions)
+- ✅ **Complete Solutions** (separate files)
+- ✅ **Practice Database** (10 tables, ready to use)
+- ✅ **Progress Tracking** (daily checklists)
+- ✅ **Quick Reference** (interview day cheat sheet)
 
----
-
-## 📝 License & Usage
-
-This training system is for your personal use in preparing for EPAM interviews.
-- ✅ Use for personal study
-- ✅ Share with friends preparing for same role
-- ✅ Adapt exercises to your needs
-- ❌ Don't sell or commercialize
+**Total content:** 100+ hours of material
 
 ---
 
-## 🎯 Final Words
+## 💪 Your Mission
 
-This training system gives you everything you need. Now it's up to you to:
+1. ✅ You're reading this (done!)
+2. ⬜ Open `PROGRESS_TRACKER.md` and set your interview date
+3. ⬜ Open `01_SQL/01_SQL_Basics.md` and start learning
+4. ⬜ Complete first 5 SQL exercises
+5. ⬜ Update progress tracker
+6. ⬜ Repeat daily for 3-6 weeks
 
-1. **Follow the plan** consistently
-2. **Practice actively** (write code, don't just read)
-3. **Track progress** honestly
-4. **Review mistakes** thoroughly
-5. **Stay motivated** throughout
-
-**Remember**: The interview is just a checkpoint. The real goal is becoming an excellent Data Integration Engineer.
-
-**You've got this!** 💪🚀
+**The system is ready. Now it's on you!** 🚀
 
 ---
 
-**Start your journey**: Open `MASTER_GAME_PLAN.md` now!
+## 🌟 Remember
+
+> "Success is the sum of small efforts repeated day in and day out."
+
+You have everything you need:
+- Clear roadmap
+- Quality content
+- Practice problems
+- Real interview questions
+- Progress tracking
+
+**No more research. No more planning. Just execute.**
 
 ---
 
-Last Updated: October 18, 2025
+## 🚀 Start Now
 
+```bash
+# Your first 3 actions:
+1. Open: PROGRESS_TRACKER.md (set interview date)
+2. Open: 01_SQL/01_SQL_Basics.md (start learning)
+3. Commit to 2 hours of study today
+
+# Then:
+Follow PROGRESS_TRACKER.md daily → Master the material → Ace the interview
+```
+
+**You've got this!** 💪
+
+---
+
+**Created:** October 2025 | **Based On:** Official EPAM Preparation Guide  
+**Status:** Production Ready | **Next:** Open `01_SQL/01_SQL_Basics.md`
