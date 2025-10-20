@@ -585,3 +585,4 @@ ORDER BY total_amount DESC;
 - ✅ Monitor query performance
 
 **Target**: Optimize any query in under 10 minutes! 🚀
+

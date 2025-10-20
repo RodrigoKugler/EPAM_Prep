@@ -406,3 +406,4 @@ cohort_month | customer_count | month_1_retention | month_2_retention | month_3_
 - ✅ Explain your approach clearly
 
 **Target**: Solve any subquery/CTE problem in under 20 minutes! 🚀
+

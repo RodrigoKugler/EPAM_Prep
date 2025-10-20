@@ -567,3 +567,4 @@ ORDER BY customer_id, order_month;
 **This enhanced SQL section will transform students from SQL beginners to data engineering professionals ready for EPAM interviews and real-world work!** 🚀
 
 **Ready to implement this plan?** Let's start with the highest priority modules!
+

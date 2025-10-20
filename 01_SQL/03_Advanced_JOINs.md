@@ -803,3 +803,4 @@ LIMIT 10;
 **Key Takeaway**: JOINs are about **combining data from multiple sources**. Master the different types, understand when to use each, and always validate your results. This is essential for data engineering work.
 
 **Next Module**: `01_SQL/04_Subqueries_CTEs.md`
+

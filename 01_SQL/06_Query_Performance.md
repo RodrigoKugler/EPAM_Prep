@@ -772,3 +772,4 @@ GROUP BY customer_id;
 **Key Takeaway**: Query performance is about **understanding how the database engine works** and designing your queries accordingly. Master indexing, execution plans, and optimization techniques, and you'll be ready for any performance challenge.
 
 **Next Module**: `01_SQL/05_Data_Types_Functions.md`
+

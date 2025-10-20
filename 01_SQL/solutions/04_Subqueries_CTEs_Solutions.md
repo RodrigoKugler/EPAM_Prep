@@ -786,3 +786,4 @@ ORDER BY cohort_month;
 5. Test with small datasets first
 
 **Master these patterns and you'll be ready for any subquery/CTE challenge!** 🚀
+

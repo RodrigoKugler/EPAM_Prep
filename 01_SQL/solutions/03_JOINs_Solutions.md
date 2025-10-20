@@ -597,3 +597,4 @@ ORDER BY cohort_month;
 5. Handle NULL values appropriately with COALESCE
 
 **Master these patterns and you'll be ready for any JOIN challenge!** 🚀
+

@@ -1051,3 +1051,4 @@ SELECT * FROM cte_name;
 **Key Takeaway**: Subqueries and CTEs are about **breaking complex problems into manageable steps**. Use CTEs for readability, subqueries for simple calculations, and always consider performance implications.
 
 **Next Module**: `01_SQL/06_Query_Performance.md`
+
