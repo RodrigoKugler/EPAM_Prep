@@ -346,7 +346,109 @@ ORDER BY total_spent DESC;     -- 5. Sort by total spend
 
 **Remember**: WHERE = "Which rows to include", HAVING = "Which groups to include"
 
-### 3. Aggregate Functions Mastery
+### 3. WHERE Filtering with Multiple Elements
+
+#### Using IN Operator - The Clean Way
+
+**Purpose**: Filter rows where a column matches any value in a list
+
+```sql
+-- Find employees in specific departments
+SELECT employee_id, first_name, department
+FROM employees
+WHERE department IN ('Sales', 'Marketing', 'IT');
+```
+
+**Benefits of IN:**
+- ✅ **Clean and readable** - easy to understand
+- ✅ **Efficient performance** - database optimized
+- ✅ **Easy to maintain** - simple to add/remove values
+- ✅ **Handles many values** - works with long lists
+
+#### Using OR Operator - For Complex Conditions
+
+**Purpose**: Filter rows where multiple conditions are true (any one can be true)
+
+```sql
+-- Same result using OR
+SELECT employee_id, first_name, department
+FROM employees
+WHERE department = 'Sales' 
+   OR department = 'Marketing' 
+   OR department = 'IT';
+```
+
+**When to use OR:**
+- ✅ **Complex conditions** - not just equality checks
+- ✅ **Different operators** - mix of =, >, <, LIKE, etc.
+- ✅ **Few values** - 2-3 items maximum
+
+#### Using AND for Multiple Criteria
+
+**Purpose**: Filter rows where ALL conditions must be true
+
+```sql
+-- Find employees meeting multiple criteria
+SELECT employee_id, first_name, department, salary
+FROM employees
+WHERE department = 'Sales' 
+  AND salary > 50000
+  AND hire_date > '2020-01-01';
+```
+
+#### Combining IN, OR, and AND
+
+```sql
+-- Complex filtering with multiple elements
+SELECT * FROM employees
+WHERE (department IN ('Sales', 'Marketing') OR department = 'IT')
+  AND salary > 50000
+  AND hire_date > '2020-01-01';
+```
+
+#### Real-World Examples
+
+**Example 1: Department Filtering**
+```sql
+-- Find employees in Sales or Marketing (using IN)
+SELECT * FROM employees
+WHERE department IN ('Sales', 'Marketing');
+
+-- Equivalent using OR
+SELECT * FROM employees
+WHERE department = 'Sales' OR department = 'Marketing';
+```
+
+**Example 2: Salary Range**
+```sql
+-- Using BETWEEN for ranges
+SELECT * FROM employees
+WHERE salary BETWEEN 40000 AND 70000;
+
+-- Equivalent using AND
+SELECT * FROM employees
+WHERE salary >= 40000 AND salary <= 70000;
+```
+
+**Example 3: Complex Business Logic**
+```sql
+-- Find high-performing employees in key departments
+SELECT * FROM employees
+WHERE department IN ('Sales', 'Marketing', 'IT')
+  AND salary > 60000
+  AND performance_rating >= 4;
+```
+
+#### Decision Guide: IN vs OR vs AND
+
+| **Scenario** | **Use** | **Example** |
+|-------------|---------|-------------|
+| **Multiple exact matches** | `IN` | `WHERE department IN ('Sales', 'Marketing')` |
+| **Different operators** | `OR` | `WHERE salary > 50000 OR hire_date < '2020-01-01'` |
+| **All conditions must be true** | `AND` | `WHERE department = 'Sales' AND salary > 50000` |
+| **Complex combinations** | **Mix them** | `WHERE (dept IN ('A','B')) AND (salary > 50K)` |
+
+### 4. Aggregate Functions Mastery
 
 #### The Complete Aggregate Function Toolkit
 
