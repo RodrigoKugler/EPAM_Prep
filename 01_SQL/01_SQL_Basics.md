@@ -448,6 +448,83 @@ WHERE department IN ('Sales', 'Marketing', 'IT')
 | **All conditions must be true** | `AND` | `WHERE department = 'Sales' AND salary > 50000` |
 | **Complex combinations** | **Mix them** | `WHERE (dept IN ('A','B')) AND (salary > 50K)` |
 
+#### Case-Insensitive Searching
+
+**Case-insensitive** means ignoring the difference between uppercase and lowercase letters in your search.
+
+##### Understanding Case Sensitivity
+
+**Case-Sensitive** (default):
+- `'Manager'` ≠ `'manager'` ≠ `'MANAGER'`
+- Each is treated as a different value
+
+**Case-Insensitive**:
+- `'Manager'` = `'manager'` = `'MANAGER'`
+- All are treated as the same value
+
+##### Real-World Example
+
+Imagine job titles in your database:
+```
+Job Title
+---------
+Manager
+MANAGER
+manager
+Senior Manager
+senior manager
+```
+
+**Case-Sensitive Search (Default)**:
+```sql
+-- This will ONLY find exact case matches
+WHERE job_title LIKE '%Manager%'
+```
+**Result**: Only finds `'Manager'` and `'Senior Manager'`
+
+**Case-Insensitive Search**:
+```sql
+-- This will find ALL variations
+WHERE UPPER(job_title) LIKE '%MANAGER%'
+-- OR
+WHERE LOWER(job_title) LIKE '%manager%'
+```
+**Result**: Finds `'Manager'`, `'MANAGER'`, `'manager'`, `'Senior Manager'`, `'senior manager'`
+
+##### Methods for Case-Insensitive Searching
+
+**Method 1: Using UPPER()**
+```sql
+-- Convert both sides to uppercase
+WHERE UPPER(job_title) LIKE '%MANAGER%'
+```
+
+**Method 2: Using LOWER()**
+```sql
+-- Convert both sides to lowercase
+WHERE LOWER(job_title) LIKE '%manager%'
+```
+
+**Method 3: Using COLLATE (SQLite specific)**
+```sql
+-- Use case-insensitive collation
+WHERE job_title COLLATE NOCASE LIKE '%manager%'
+```
+
+##### Why Case-Insensitive Searching Matters
+
+- **User-friendly**: Users might type `'manager'` or `'Manager'`
+- **Data consistency**: Real data often has inconsistent casing
+- **Robust queries**: Makes searches more reliable
+- **Business requirements**: Often need to find all variations
+
+##### EPAM Interview Focus
+
+Case-insensitive searching is a **common interview topic** because it tests:
+- Understanding of string functions (UPPER, LOWER)
+- Real-world data handling
+- Business logic application
+
 ### 4. Aggregate Functions Mastery
 
 #### The Complete Aggregate Function Toolkit
