@@ -1,10 +1,18 @@
 # SQL Basics - Practice Exercises
 
 ## 📝 Instructions
-- Solve each exercise independently
+- Solve each exercise independently using the **Enhanced Database**: `database/epam_practice.db`
 - Time yourself (aim for < 5 minutes each)
 - Check solutions ONLY after attempting
 - Solutions in: `01_SQL/solutions/01_Basics_Solutions.md`
+
+## 🚀 Enhanced Database Available!
+- **46,774+ records** across 16 tables
+- **Real-world business scenarios**: customers, orders, products, employees
+- **Performance optimized**: 18 indexes for advanced practice
+- **EPAM interview ready**: All classic scenarios supported
+
+**Database Guide**: See `database/DATABASE_QUICK_REFERENCE.md`
 
 ---
 

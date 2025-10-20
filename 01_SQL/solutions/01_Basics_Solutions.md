@@ -2,6 +2,14 @@
 
 ## ⚠️ Attempt exercises FIRST before viewing solutions!
 
+## 🚀 Enhanced Database Examples
+These solutions work with the **Enhanced Database** (`database/epam_practice.db`):
+- **46,774+ records** across 16 tables
+- **Real-world business scenarios**: customers, orders, products, employees
+- **Performance optimized**: 18 indexes for advanced practice
+
+**Database Guide**: See `database/DATABASE_QUICK_REFERENCE.md`
+
 ---
 
 ## Solution 1: Basic SELECT

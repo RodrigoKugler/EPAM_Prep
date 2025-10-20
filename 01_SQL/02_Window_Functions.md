@@ -26,6 +26,36 @@ Window functions are **EPAM's #1 favorite SQL topic**. Here's why:
 
 ---
 
+## 📚 Module Structure Overview
+
+```
+📖 THEORY SECTIONS
+├── 1. Window Functions Fundamentals
+├── 2. Ranking Functions Mastery
+├── 3. Analytical Functions (LAG/LEAD)
+├── 4. Aggregate Window Functions
+├── 5. Frame Specifications Deep Dive
+└── 6. PARTITION BY Mastery
+
+💡 PRACTICAL EXAMPLES
+├── EPAM Classic Problems
+├── Business Scenario Applications
+├── Performance Optimization
+└── Real-World Use Cases
+
+🎯 EPAM INTERVIEW FOCUS
+├── The Classic Cumulative Problem
+├── Advanced Patterns & Variations
+├── Common Mistakes & Solutions
+└── Interview Success Strategies
+```
+
+---
+
+## 📖 THEORY SECTIONS
+
+---
+
 ## 📚 What Are Window Functions? - Deep Understanding
 
 Window functions perform calculations across a set of rows **without collapsing them** (unlike GROUP BY). Think of them as "peeking through a window" at related rows.
@@ -1871,6 +1901,245 @@ SELECT
 FROM [table]
 ORDER BY [group], [date];
 ```
+
+---
+
+## 💡 PRACTICAL EXAMPLES
+
+### EPAM Classic Problems - Master These!
+
+#### Problem 1: The Classic Cumulative Orders (EPAM's Favorite)
+**"Calculate running total of orders per customer with order count"**
+
+```sql
+-- This is THE problem EPAM asks most often
+SELECT 
+    customer_id,
+    order_id,
+    order_date,
+    order_amount,
+    -- Cumulative count: ROW_NUMBER resets for each customer
+    ROW_NUMBER() OVER (
+        PARTITION BY customer_id 
+        ORDER BY order_date
+    ) as order_count_history,
+    -- Cumulative sum: SUM with explicit frame
+    SUM(order_amount) OVER (
+        PARTITION BY customer_id 
+        ORDER BY order_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) as order_value_history
+FROM orders
+ORDER BY customer_id, order_date;
+```
+
+#### Problem 2: Sales Performance Ranking
+**"Rank sales reps within each region by total sales"**
+
+```sql
+SELECT 
+    sales_rep_id,
+    region,
+    total_sales,
+    RANK() OVER (
+        PARTITION BY region 
+        ORDER BY total_sales DESC
+    ) as region_rank,
+    DENSE_RANK() OVER (
+        ORDER BY total_sales DESC
+    ) as global_rank
+FROM sales_performance
+ORDER BY region, region_rank;
+```
+
+#### Problem 3: Customer Behavior Analysis
+**"Find customers with increasing order values over time"**
+
+```sql
+WITH customer_trends AS (
+    SELECT 
+        customer_id,
+        order_date,
+        order_amount,
+        LAG(order_amount, 1) OVER (
+            PARTITION BY customer_id 
+            ORDER BY order_date
+        ) as prev_order_amount,
+        order_amount - LAG(order_amount, 1) OVER (
+            PARTITION BY customer_id 
+            ORDER BY order_date
+        ) as order_growth
+    FROM orders
+)
+SELECT 
+    customer_id,
+    COUNT(*) as total_orders,
+    AVG(order_growth) as avg_growth,
+    SUM(CASE WHEN order_growth > 0 THEN 1 ELSE 0 END) as increasing_orders
+FROM customer_trends
+WHERE prev_order_amount IS NOT NULL
+GROUP BY customer_id
+HAVING AVG(order_growth) > 0
+ORDER BY avg_growth DESC;
+```
+
+---
+
+## 🎯 EPAM INTERVIEW FOCUS
+
+### The Classic Cumulative Problem - Master This!
+
+This is **THE problem** EPAM asks in 90% of SQL interviews:
+
+**Problem Statement**: Calculate cumulative count and cumulative sum of orders per customer.
+
+**Sample Data**:
+```sql
+-- Orders table
+customer_id | order_id | order_date | order_amount
+A          | 1        | 2024-01-01 | 100
+A          | 2        | 2024-01-05 | 150
+A          | 3        | 2024-01-10 | 200
+B          | 4        | 2024-01-02 | 300
+B          | 5        | 2024-01-08 | 250
+```
+
+**Expected Output**:
+```sql
+customer_id | order_id | order_date | order_amount | order_count_history | order_value_history
+A          | 1        | 2024-01-01 | 100         | 1                   | 100
+A          | 2        | 2024-01-05 | 150         | 2                   | 250
+A          | 3        | 2024-01-10 | 200         | 3                   | 450
+B          | 4        | 2024-01-02 | 300         | 1                   | 300
+B          | 5        | 2024-01-08 | 250         | 2                   | 550
+```
+
+**Solution** (Memorize this pattern!):
+```sql
+SELECT 
+    customer_id,
+    order_id,
+    order_date,
+    order_amount,
+    -- Cumulative count: ROW_NUMBER resets for each customer
+    ROW_NUMBER() OVER (
+        PARTITION BY customer_id 
+        ORDER BY order_date
+    ) as order_count_history,
+    -- Cumulative sum: SUM with explicit frame
+    SUM(order_amount) OVER (
+        PARTITION BY customer_id 
+        ORDER BY order_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) as order_value_history
+FROM orders
+ORDER BY customer_id, order_date;
+```
+
+### Interview Success Strategy
+
+1. **Recognize the pattern**: "This is a cumulative/running total problem"
+2. **Choose the right functions**: ROW_NUMBER() for count, SUM() for totals
+3. **Use PARTITION BY**: Reset counters for each group
+4. **Set proper ORDER BY**: Chronological order for time series
+5. **Define the frame**: ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+6. **Test with sample data**: Always verify your logic
+
+### Common Interview Variations
+
+#### Variation 1: Moving Averages
+```sql
+-- 7-day moving average
+SELECT 
+    date,
+    sales,
+    AVG(sales) OVER (
+        ORDER BY date 
+        ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
+    ) as moving_avg_7_days
+FROM daily_sales;
+```
+
+#### Variation 2: Top N per Group
+```sql
+-- Top 3 highest-paid employees in each department
+WITH ranked_employees AS (
+    SELECT 
+        employee_name,
+        department,
+        salary,
+        ROW_NUMBER() OVER (
+            PARTITION BY department 
+            ORDER BY salary DESC
+        ) as dept_rank
+    FROM employees
+)
+SELECT employee_name, department, salary
+FROM ranked_employees
+WHERE dept_rank <= 3;
+```
+
+#### Variation 3: Period-over-Period Analysis
+```sql
+-- Month-over-month growth
+SELECT 
+    month,
+    revenue,
+    LAG(revenue, 1) OVER (ORDER BY month) as prev_month_revenue,
+    revenue - LAG(revenue, 1) OVER (ORDER BY month) as growth,
+    (revenue * 100.0 / LAG(revenue, 1) OVER (ORDER BY month)) - 100 as growth_percent
+FROM monthly_revenue;
+```
+
+---
+
+## 🚀 Performance Optimization
+
+### Window Function Performance Tips
+
+1. **Index your ORDER BY columns**
+   ```sql
+   CREATE INDEX idx_orders_customer_date ON orders(customer_id, order_date);
+   ```
+
+2. **Use PARTITION BY to limit scope**
+   ```sql
+   -- Good: Limited partition
+   ROW_NUMBER() OVER (PARTITION BY customer_id ORDER BY order_date)
+   
+   -- Avoid: Global window on large datasets
+   ROW_NUMBER() OVER (ORDER BY order_date)
+   ```
+
+3. **Choose appropriate frame sizes**
+   ```sql
+   -- Good: Limited frame
+   AVG(sales) OVER (ORDER BY date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)
+   
+   -- Avoid: Unbounded frames on large datasets
+   AVG(sales) OVER (ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
+   ```
+
+---
+
+## 🏋️ Practice Strategy
+
+### Master These Patterns in Order
+
+1. **Basic ROW_NUMBER()** - Sequential numbering
+2. **RANK() vs DENSE_RANK()** - Ranking with/without gaps
+3. **PARTITION BY** - Group-based calculations
+4. **Running totals** - SUM() with OVER()
+5. **LAG/LEAD** - Time series analysis
+6. **Frame specifications** - Precise window control
+7. **Complex combinations** - Multiple window functions
+
+### Time Targets for EPAM Interview
+
+- **Basic window function**: 3-5 minutes
+- **Cumulative problem**: 5-8 minutes
+- **Complex ranking**: 7-10 minutes
+- **Multiple window functions**: 10-15 minutes
 
 ---
 

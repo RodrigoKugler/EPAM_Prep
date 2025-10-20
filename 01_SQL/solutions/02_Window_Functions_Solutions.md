@@ -2,6 +2,15 @@
 
 ## ⚠️ Attempt exercises FIRST before viewing solutions!
 
+## 🚀 Enhanced Database Examples
+These solutions work with the **Enhanced Database** (`database/epam_practice.db`):
+- **46,774+ records** across 16 tables
+- **Real-world scenarios**: 2,000 orders, 500 customers, 44,020 sales transactions
+- **Time series data**: Perfect for running totals and window functions
+- **Performance optimized**: 18 indexes for advanced practice
+
+**Database Guide**: See `database/DATABASE_QUICK_REFERENCE.md`
+
 ---
 
 ## Solution 1: ROW_NUMBER

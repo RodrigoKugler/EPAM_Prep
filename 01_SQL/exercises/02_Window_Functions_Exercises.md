@@ -6,6 +6,14 @@
 - Time yourself: < 10 minutes per exercise
 - Solutions in: `01_SQL/solutions/02_Window_Functions_Solutions.md`
 
+## 🚀 Enhanced Database Available!
+- **46,774+ records** across 16 tables
+- **Real-world scenarios**: 2,000 orders, 500 customers, 44,020 sales transactions
+- **Time series data**: Perfect for running totals and window functions
+- **Performance optimized**: 18 indexes for advanced practice
+
+**Database Guide**: See `database/DATABASE_QUICK_REFERENCE.md`
+
 ---
 
 ## Exercise 1: ROW_NUMBER

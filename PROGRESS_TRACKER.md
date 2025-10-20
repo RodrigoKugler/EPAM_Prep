@@ -25,6 +25,7 @@ Overall: 0% Complete
 **Time Spent:** _____ hours
 
 - [ ] Read: `01_SQL/01_SQL_Basics.md`
+- [ ] Explored enhanced database: `database/epam_practice.db` (46,774+ records!)
 - [ ] Exercises 1-5 completed
 - [ ] Exercises 6-10 completed
 - [ ] Exercises 11-15 completed
