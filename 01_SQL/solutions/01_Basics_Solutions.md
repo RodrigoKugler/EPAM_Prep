@@ -17,6 +17,8 @@ These solutions work with the **Enhanced Database** (`database/epam_practice.db`
 SELECT * FROM employees;
 ```
 
+**Explanation**: The simplest SELECT statement. The asterisk (*) selects all columns from the employees table.
+
 ---
 
 ## Solution 2: Filtering with WHERE
@@ -26,6 +28,8 @@ FROM employees
 WHERE salary > 50000;
 ```
 
+**Explanation**: WHERE filters individual rows before any grouping. This keeps only employees with salary greater than 50,000.
+
 ---
 
 ## Solution 3: Using LIKE
@@ -34,6 +38,8 @@ SELECT *
 FROM employees
 WHERE name LIKE 'J%';
 ```
+
+**Explanation**: LIKE with 'J%' matches any name starting with 'J'. The % wildcard represents any number of characters.
 
 ---
 
@@ -46,6 +52,8 @@ FROM employees
 GROUP BY department;
 ```
 
+**Explanation**: GROUP BY groups employees by department, then COUNT(*) counts the number of employees in each group. All non-aggregated columns (department) must be in GROUP BY.
+
 ---
 
 ## Solution 5: SUM Aggregation
@@ -57,9 +65,11 @@ FROM employees
 GROUP BY department;
 ```
 
+**Explanation**: SUM() adds up all salary values within each department group. This gives us the total salary expense per department.
+
 ---
 
-## Solution 6: AVG with HAVING
+## Solution 6: AVG with HAVING ⭐ EPAM FAVORITE
 ```sql
 SELECT 
     department,
@@ -68,6 +78,12 @@ FROM employees
 GROUP BY department
 HAVING AVG(salary) > 60000;
 ```
+
+**Explanation**: This is a classic WHERE vs HAVING question! 
+- AVG(salary) is calculated AFTER grouping
+- HAVING filters groups based on aggregated values
+- WHERE would be used to filter individual employees before grouping
+- **EPAM Focus**: This tests understanding of WHERE vs HAVING distinction
 
 ---
 
@@ -79,6 +95,8 @@ WHERE department IN ('Sales', 'Marketing')
   AND salary > 50000;
 ```
 
+**Explanation**: IN operator is cleaner than multiple OR conditions. This finds employees in either Sales OR Marketing departments, AND with salary > 50000.
+
 ---
 
 ## Solution 8: ORDER BY
@@ -87,6 +105,8 @@ SELECT *
 FROM employees
 ORDER BY salary DESC, name ASC;
 ```
+
+**Explanation**: ORDER BY sorts results. DESC means descending (highest first), ASC means ascending (alphabetical). When salaries are equal, names are sorted alphabetically.
 
 ---
 
