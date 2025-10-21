@@ -769,3 +769,4 @@ if __name__ == "__main__":
     print("4. Practice window functions with time series data")
     print("5. Test complex joins with proper relationships")
     print("="*70)
+

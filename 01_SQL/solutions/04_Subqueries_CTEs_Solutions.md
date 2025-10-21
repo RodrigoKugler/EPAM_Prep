@@ -787,3 +787,4 @@ ORDER BY cohort_month;
 
 **Master these patterns and you'll be ready for any subquery/CTE challenge!** 🚀
 
+

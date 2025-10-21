@@ -1052,3 +1052,4 @@ SELECT * FROM cte_name;
 
 **Next Module**: `01_SQL/06_Query_Performance.md`
 
+

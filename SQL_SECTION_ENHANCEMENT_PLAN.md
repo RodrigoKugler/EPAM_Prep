@@ -568,3 +568,4 @@ ORDER BY customer_id, order_month;
 
 **Ready to implement this plan?** Let's start with the highest priority modules!
 
+

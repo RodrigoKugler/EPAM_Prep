@@ -327,3 +327,4 @@ SELECT * FROM orders WHERE order_date >= '2024-01-01';
 **Happy SQL Practicing!** 🎯
 
 Remember: This database is designed to mirror real-world business scenarios. Use it to practice not just SQL syntax, but also business analysis and data engineering thinking!
+

@@ -598,3 +598,4 @@ ORDER BY cohort_month;
 
 **Master these patterns and you'll be ready for any JOIN challenge!** 🚀
 
+

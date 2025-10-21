@@ -586,3 +586,4 @@ ORDER BY total_amount DESC;
 
 **Target**: Optimize any query in under 10 minutes! 🚀
 
+
