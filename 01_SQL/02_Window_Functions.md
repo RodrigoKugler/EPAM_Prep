@@ -594,6 +594,141 @@ ORDER BY cid, order_date;
 
 ---
 
+## 🔢 ROUND() Function - Essential for Professional Results
+
+**ROUND() is crucial for window function results. Never show messy decimals in EPAM interviews!**
+
+### **What is ROUND()?**
+
+ROUND() rounds a numeric value to a specified number of decimal places.
+
+### **Basic ROUND() Syntax:**
+
+```sql
+ROUND(value, decimal_places)
+```
+
+- **value**: The number to round
+- **decimal_places**: How many decimal places (0 = whole number, 2 = two decimals)
+
+### **ROUND() Examples:**
+
+```sql
+-- Basic rounding examples
+SELECT 
+    ROUND(123.456, 0) as round_0,      -- 123 (whole number)
+    ROUND(123.456, 1) as round_1,      -- 123.5 (one decimal)
+    ROUND(123.456, 2) as round_2,      -- 123.46 (two decimals)
+    ROUND(123.456, -1) as round_neg1,  -- 120 (rounds to nearest 10)
+    ROUND(123.456, -2) as round_neg2;  -- 100 (rounds to nearest 100)
+```
+
+**Output:**
+```
+round_0 | round_1 | round_2 | round_neg1 | round_neg2
+--------|---------|---------|------------|------------
+123     | 123.5   | 123.46  | 120        | 100
+```
+
+### **ROUND() with Window Functions:**
+
+#### **1. Rounding Averages:**
+```sql
+SELECT 
+    department_id,
+    salary,
+    AVG(salary) OVER (PARTITION BY department_id) as raw_avg,
+    ROUND(AVG(salary) OVER (PARTITION BY department_id), 2) as rounded_avg
+FROM employees;
+```
+
+#### **2. Rounding Percentages:**
+```sql
+SELECT 
+    customer_id,
+    order_amount,
+    SUM(order_amount) OVER (PARTITION BY customer_id) as customer_total,
+    ROUND((order_amount * 100.0 / SUM(order_amount) OVER (PARTITION BY customer_id)), 2) as percent_of_total
+FROM orders;
+```
+
+#### **3. Rounding Growth Calculations:**
+```sql
+SELECT 
+    month,
+    revenue,
+    LAG(revenue) OVER (ORDER BY month) as prev_revenue,
+    ROUND(((revenue - LAG(revenue) OVER (ORDER BY month)) * 100.0 / LAG(revenue) OVER (ORDER BY month)), 2) as growth_percent
+FROM monthly_revenue;
+```
+
+### **Common ROUND() Patterns:**
+
+#### **Pattern 1: Financial Data (2 decimals)**
+```sql
+SELECT 
+    customer_id,
+    order_amount,
+    ROUND(order_amount, 2) as rounded_amount,
+    ROUND(SUM(order_amount) OVER (PARTITION BY customer_id), 2) as customer_total
+FROM orders;
+```
+
+#### **Pattern 2: Percentages (1-2 decimals)**
+```sql
+SELECT 
+    employee_name,
+    salary,
+    ROUND((salary * 100.0 / AVG(salary) OVER ()), 1) as percent_vs_avg
+FROM employees;
+```
+
+#### **Pattern 3: Statistical Measures (2-3 decimals)**
+```sql
+SELECT 
+    department_id,
+    salary,
+    ROUND(AVG(salary) OVER (PARTITION BY department_id), 2) as dept_avg,
+    ROUND(STDDEV(salary) OVER (PARTITION BY department_id), 3) as dept_stddev
+FROM employees;
+```
+
+### **ROUND() Best Practices:**
+
+1. **Always round financial data** - Never show $123.456789
+2. **Round percentages** - 33.33% not 33.333333%
+3. **Round averages** - 45.67 not 45.6666667
+4. **Use appropriate decimal places**:
+   - **Money**: 2 decimals ($123.45)
+   - **Percentages**: 1-2 decimals (33.3% or 33.33%)
+   - **Averages**: 2 decimals (45.67)
+   - **Statistical measures**: 2-3 decimals (1.234)
+
+### **EPAM Interview Tips for ROUND():**
+
+1. **Always round window function results** - Shows professionalism
+2. **Use appropriate decimal places** - Match business context
+3. **Explain your rounding choices** - "I'll round to 2 decimals for currency"
+4. **Consistent rounding** - Same decimal places throughout query
+
+### **Common ROUND() Mistakes:**
+
+#### **❌ Wrong:**
+```sql
+-- Messy decimals
+SELECT AVG(salary) OVER (PARTITION BY department_id) as dept_avg FROM employees;
+-- Result: 45678.6666667
+```
+
+#### **✅ Correct:**
+```sql
+-- Clean, professional results
+SELECT ROUND(AVG(salary) OVER (PARTITION BY department_id), 2) as dept_avg FROM employees;
+-- Result: 45678.67
+```
+
+---
+
 ## 🔧 CTEs (Common Table Expressions) - The WITH Clause
 
 **Now that you understand window functions, let's learn how to use CTEs to make them more powerful and readable!**
