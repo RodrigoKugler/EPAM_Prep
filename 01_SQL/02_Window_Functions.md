@@ -596,41 +596,168 @@ ORDER BY cid, order_date;
 
 ## 💡 Advanced Patterns and Real-World Applications
 
-### 1. Top N per Group
+**These patterns are EPAM's favorites for testing advanced SQL skills. Master these = guaranteed interview success!**
+
+---
+
+### 1. Top N per Group - The Classic EPAM Pattern ⭐⭐⭐
+
+**Business Scenario**: "Find the top 3 highest-performing employees in each department for our quarterly review."
+
+#### **The Problem:**
+- Need to rank employees within each department
+- Get only the top 3 from each department
+- Preserve all employee data for analysis
+
+#### **Step-by-Step Solution:**
+
+**Step 1: Create Rankings with Window Functions**
 ```sql
--- Top 3 highest-paid employees in each department
+-- Use ROW_NUMBER() for unique rankings (no ties)
 WITH ranked_employees AS (
     SELECT 
-        employee_name,
-        department,
+        CONCAT(first_name, ' ', last_name) as employee_name,
+        department_id,
         salary,
         ROW_NUMBER() OVER (
-            PARTITION BY department 
+            PARTITION BY department_id 
             ORDER BY salary DESC
         ) as dept_rank
     FROM employees
 )
-SELECT employee_name, department, salary
+SELECT employee_name, department_id, salary, dept_rank
 FROM ranked_employees
-WHERE dept_rank <= 3;
+WHERE dept_rank <= 3
+ORDER BY department_id, dept_rank;
 ```
 
-### 2. Percentile Analysis
+**Step 2: Handle Ties with RANK() (Alternative)**
+```sql
+-- Use RANK() if you want to handle ties differently
+WITH ranked_employees AS (
+    SELECT 
+        CONCAT(first_name, ' ', last_name) as employee_name,
+        department_id,
+        salary,
+        RANK() OVER (
+            PARTITION BY department_id 
+            ORDER BY salary DESC
+        ) as dept_rank
+    FROM employees
+)
+SELECT employee_name, department_id, salary, dept_rank
+FROM ranked_employees
+WHERE dept_rank <= 3
+ORDER BY department_id, dept_rank;
+```
+
+#### **Key Concepts:**
+- **PARTITION BY department_id**: Separate rankings per department
+- **ORDER BY salary DESC**: Highest salary = rank 1
+- **ROW_NUMBER() vs RANK()**: ROW_NUMBER() gives unique ranks, RANK() handles ties
+- **CTE Pattern**: Clean, readable query structure
+
+#### **Real-World Applications:**
+- **HR Analytics**: Top performers per department
+- **Sales Management**: Best sales reps per region
+- **Customer Analysis**: Highest-spending customers per segment
+- **Product Analysis**: Best-selling products per category
+
+---
+
+### 2. Percentile Analysis - Statistical Insights ⭐⭐⭐
+
+**Business Scenario**: "We need to categorize our employees into performance quartiles for compensation planning."
+
+#### **The Problem:**
+- Divide employees into equal groups (quartiles, deciles, etc.)
+- Each group should have roughly the same number of employees
+- Need to understand distribution within departments
+
+#### **Comprehensive Solution:**
+
+**Basic Quartile Analysis:**
 ```sql
 -- Salary quartiles within departments
 SELECT 
-    employee_name,
-    department,
+    CONCAT(first_name, ' ', last_name) as employee_name,
+    department_id,
     salary,
     NTILE(4) OVER (
-        PARTITION BY department 
+        PARTITION BY department_id 
         ORDER BY salary DESC
-    ) as salary_quartile
-FROM employees;
--- 1 = top 25%, 4 = bottom 25%
+    ) as salary_quartile,
+    -- Add context
+    COUNT(*) OVER (PARTITION BY department_id) as dept_size,
+    AVG(salary) OVER (PARTITION BY department_id) as dept_avg_salary
+FROM employees
+ORDER BY department_id, salary_quartile, salary DESC;
 ```
 
-### 3. Gap Analysis
+**Advanced Percentile Analysis:**
+```sql
+-- Comprehensive percentile analysis
+WITH percentile_analysis AS (
+    SELECT 
+        CONCAT(first_name, ' ', last_name) as employee_name,
+        department_id,
+        salary,
+        -- Quartiles
+        NTILE(4) OVER (PARTITION BY department_id ORDER BY salary DESC) as quartile,
+        -- Deciles
+        NTILE(10) OVER (PARTITION BY department_id ORDER BY salary DESC) as decile,
+        -- Percentiles
+        PERCENT_RANK() OVER (PARTITION BY department_id ORDER BY salary) * 100 as percentile,
+        -- Department statistics
+        AVG(salary) OVER (PARTITION BY department_id) as dept_avg,
+        MIN(salary) OVER (PARTITION BY department_id) as dept_min,
+        MAX(salary) OVER (PARTITION BY department_id) as dept_max
+    FROM employees
+)
+SELECT 
+    employee_name,
+    department_id,
+    salary,
+    quartile,
+    decile,
+    ROUND(percentile, 2) as percentile,
+    ROUND(salary - dept_avg, 2) as salary_vs_avg,
+    CASE 
+        WHEN quartile = 1 THEN 'Top 25%'
+        WHEN quartile = 2 THEN '25-50%'
+        WHEN quartile = 3 THEN '50-75%'
+        ELSE 'Bottom 25%'
+    END as performance_tier
+FROM percentile_analysis
+ORDER BY department_id, quartile, salary DESC;
+```
+
+#### **Key Concepts:**
+- **NTILE(n)**: Divides into n equal groups
+- **PERCENT_RANK()**: Returns percentile (0-1, multiply by 100 for percentage)
+- **PARTITION BY**: Separate analysis per department
+- **CASE statements**: Add business context
+
+#### **Real-World Applications:**
+- **Compensation Planning**: Salary quartiles for raises
+- **Performance Management**: Employee performance tiers
+- **Customer Segmentation**: Value-based customer groups
+- **Risk Assessment**: Credit score percentiles
+
+---
+
+### 3. Gap Analysis - Finding Patterns in Time Series ⭐⭐⭐
+
+**Business Scenario**: "We need to identify customers who haven't ordered in over 30 days to trigger re-engagement campaigns."
+
+#### **The Problem:**
+- Find gaps in customer order sequences
+- Identify customers at risk of churning
+- Calculate time between orders
+
+#### **Comprehensive Solution:**
+
+**Basic Gap Analysis:**
 ```sql
 -- Find gaps in order sequences
 WITH order_gaps AS (
@@ -647,42 +774,357 @@ WITH order_gaps AS (
         )) as days_since_last_order
     FROM orders
 )
-SELECT *
+SELECT 
+    customer_id,
+    order_date,
+    prev_order_date,
+    days_since_last_order,
+    CASE 
+        WHEN days_since_last_order > 90 THEN 'High Risk'
+        WHEN days_since_last_order > 30 THEN 'Medium Risk'
+        ELSE 'Low Risk'
+    END as churn_risk
 FROM order_gaps
-WHERE days_since_last_order > 30;  -- Gaps > 30 days
+WHERE days_since_last_order > 30  -- Gaps > 30 days
+ORDER BY days_since_last_order DESC;
 ```
 
-### 4. Performance Comparison
+**Advanced Gap Analysis with Customer Context:**
+```sql
+-- Comprehensive gap analysis with customer insights
+WITH customer_order_analysis AS (
+    SELECT 
+        o.customer_id,
+        c.first_name,
+        c.last_name,
+        o.order_date,
+        o.total_amount,
+        LAG(o.order_date) OVER (
+            PARTITION BY o.customer_id 
+            ORDER BY o.order_date
+        ) as prev_order_date,
+        LAG(o.total_amount) OVER (
+            PARTITION BY o.customer_id 
+            ORDER BY o.order_date
+        ) as prev_order_amount,
+        JULIANDAY(o.order_date) - JULIANDAY(LAG(o.order_date) OVER (
+            PARTITION BY o.customer_id 
+            ORDER BY o.order_date
+        )) as days_since_last_order,
+        -- Customer statistics
+        COUNT(*) OVER (PARTITION BY o.customer_id) as total_orders,
+        AVG(o.total_amount) OVER (PARTITION BY o.customer_id) as avg_order_value,
+        SUM(o.total_amount) OVER (PARTITION BY o.customer_id) as lifetime_value
+    FROM orders o
+    JOIN customers c ON o.customer_id = c.customer_id
+),
+gap_analysis AS (
+    SELECT 
+        customer_id,
+        first_name,
+        last_name,
+        order_date,
+        total_amount,
+        prev_order_date,
+        prev_order_amount,
+        days_since_last_order,
+        total_orders,
+        avg_order_value,
+        lifetime_value,
+        -- Gap analysis
+        CASE 
+            WHEN days_since_last_order > 90 THEN 'High Risk'
+            WHEN days_since_last_order > 30 THEN 'Medium Risk'
+            ELSE 'Low Risk'
+        END as churn_risk,
+        -- Order value change
+        total_amount - prev_order_amount as order_value_change
+    FROM customer_order_analysis
+    WHERE days_since_last_order > 30
+)
+SELECT 
+    customer_id,
+    CONCAT(first_name, ' ', last_name) as customer_name,
+    order_date,
+    total_amount,
+    days_since_last_order,
+    churn_risk,
+    total_orders,
+    ROUND(avg_order_value, 2) as avg_order_value,
+    ROUND(lifetime_value, 2) as lifetime_value,
+    ROUND(order_value_change, 2) as order_value_change
+FROM gap_analysis
+ORDER BY days_since_last_order DESC, lifetime_value DESC;
+```
+
+#### **Key Concepts:**
+- **LAG() function**: Access previous row values
+- **JULIANDAY()**: Calculate date differences
+- **PARTITION BY**: Separate analysis per customer
+- **CASE statements**: Categorize risk levels
+- **CTEs**: Break complex queries into steps
+
+#### **Real-World Applications:**
+- **Customer Retention**: Identify at-risk customers
+- **Inventory Management**: Find gaps in product sales
+- **Employee Analysis**: Track attendance patterns
+- **Financial Analysis**: Identify payment gaps
+
+---
+
+### 4. Performance Comparison - Benchmarking Analysis ⭐⭐⭐
+
+**Business Scenario**: "We need to compare each employee's performance against their department average for our annual review process."
+
+#### **The Problem:**
+- Compare individual performance to group averages
+- Calculate percentage differences
+- Identify over/under performers
+
+#### **Comprehensive Solution:**
+
+**Basic Performance Comparison:**
 ```sql
 -- Compare each employee to department average
 SELECT 
-    employee_name,
-    department,
+    CONCAT(first_name, ' ', last_name) as employee_name,
+    department_id,
     salary,
-    AVG(salary) OVER (PARTITION BY department) as dept_avg,
-    salary - AVG(salary) OVER (PARTITION BY department) as salary_diff,
-    (salary * 100.0 / AVG(salary) OVER (PARTITION BY department)) - 100 as percent_vs_dept_avg
-FROM employees;
+    AVG(salary) OVER (PARTITION BY department_id) as dept_avg,
+    salary - AVG(salary) OVER (PARTITION BY department_id) as salary_diff,
+    ROUND((salary * 100.0 / AVG(salary) OVER (PARTITION BY department_id)) - 100, 2) as percent_vs_dept_avg
+FROM employees
+ORDER BY department_id, salary DESC;
 ```
 
-### 5. Trend Analysis
+**Advanced Performance Analysis:**
+```sql
+-- Comprehensive performance analysis
+WITH department_stats AS (
+    SELECT 
+        department_id,
+        AVG(salary) as dept_avg,
+        MIN(salary) as dept_min,
+        MAX(salary) as dept_max,
+        COUNT(*) as dept_size,
+        STDDEV(salary) as dept_stddev
+    FROM employees
+    GROUP BY department_id
+),
+employee_analysis AS (
+    SELECT 
+        e.employee_id,
+        CONCAT(e.first_name, ' ', e.last_name) as employee_name,
+        e.department_id,
+        e.salary,
+        d.dept_avg,
+        d.dept_min,
+        d.dept_max,
+        d.dept_size,
+        d.dept_stddev,
+        -- Performance metrics
+        e.salary - d.dept_avg as salary_diff,
+        ROUND((e.salary * 100.0 / d.dept_avg) - 100, 2) as percent_vs_avg,
+        ROUND((e.salary - d.dept_min) * 100.0 / (d.dept_max - d.dept_min), 2) as percentile_in_dept,
+        -- Z-score (how many standard deviations from mean)
+        ROUND((e.salary - d.dept_avg) / d.dept_stddev, 2) as z_score,
+        -- Performance tier
+        CASE 
+            WHEN e.salary > d.dept_max * 0.9 THEN 'Top 10%'
+            WHEN e.salary > d.dept_avg * 1.1 THEN 'Above Average'
+            WHEN e.salary > d.dept_avg * 0.9 THEN 'Average'
+            ELSE 'Below Average'
+        END as performance_tier
+    FROM employees e
+    JOIN department_stats d ON e.department_id = d.department_id
+)
+SELECT 
+    employee_name,
+    department_id,
+    salary,
+    ROUND(dept_avg, 2) as dept_avg,
+    ROUND(salary_diff, 2) as salary_diff,
+    percent_vs_avg || '%' as percent_vs_avg,
+    percentile_in_dept || '%' as percentile_in_dept,
+    z_score,
+    performance_tier,
+    dept_size
+FROM employee_analysis
+ORDER BY department_id, salary DESC;
+```
+
+#### **Key Concepts:**
+- **Window functions with aggregates**: AVG() OVER (PARTITION BY)
+- **Mathematical calculations**: Percentage differences, z-scores
+- **CASE statements**: Performance categorization
+- **Statistical analysis**: Standard deviation, percentiles
+
+#### **Real-World Applications:**
+- **Performance Reviews**: Employee vs department benchmarks
+- **Sales Analysis**: Rep performance vs team average
+- **Financial Analysis**: Department budget vs actual spending
+- **Quality Control**: Product quality vs standards
+
+---
+
+### 5. Trend Analysis - Time Series Intelligence ⭐⭐⭐
+
+**Business Scenario**: "We need to analyze month-over-month growth trends to identify seasonal patterns and forecast future performance."
+
+#### **The Problem:**
+- Calculate period-over-period changes
+- Identify growth trends
+- Handle seasonal variations
+
+#### **Comprehensive Solution:**
+
+**Basic Trend Analysis:**
 ```sql
 -- Month-over-month growth
 WITH monthly_sales AS (
     SELECT 
         DATE_TRUNC('month', order_date) as month,
-        SUM(order_amount) as monthly_total
+        SUM(total_amount) as monthly_total,
+        COUNT(*) as order_count
     FROM orders
     GROUP BY DATE_TRUNC('month', order_date)
+),
+trend_analysis AS (
+    SELECT 
+        month,
+        monthly_total,
+        order_count,
+        LAG(monthly_total, 1) OVER (ORDER BY month) as prev_month_total,
+        LAG(order_count, 1) OVER (ORDER BY month) as prev_month_orders,
+        monthly_total - LAG(monthly_total, 1) OVER (ORDER BY month) as revenue_growth,
+        ROUND((monthly_total * 100.0 / LAG(monthly_total, 1) OVER (ORDER BY month)) - 100, 2) as revenue_growth_percent,
+        order_count - LAG(order_count, 1) OVER (ORDER BY month) as order_growth,
+        ROUND((order_count * 100.0 / LAG(order_count, 1) OVER (ORDER BY month)) - 100, 2) as order_growth_percent
+    FROM monthly_sales
 )
 SELECT 
     month,
     monthly_total,
-    LAG(monthly_total, 1) OVER (ORDER BY month) as prev_month,
-    monthly_total - LAG(monthly_total, 1) OVER (ORDER BY month) as growth,
-    (monthly_total * 100.0 / LAG(monthly_total, 1) OVER (ORDER BY month)) - 100 as growth_percent
-FROM monthly_sales;
+    order_count,
+    prev_month_total,
+    revenue_growth,
+    revenue_growth_percent || '%' as revenue_growth_percent,
+    order_growth,
+    order_growth_percent || '%' as order_growth_percent,
+    CASE 
+        WHEN revenue_growth_percent > 10 THEN 'Strong Growth'
+        WHEN revenue_growth_percent > 0 THEN 'Positive Growth'
+        WHEN revenue_growth_percent > -10 THEN 'Slight Decline'
+        ELSE 'Significant Decline'
+    END as trend_category
+FROM trend_analysis
+ORDER BY month;
 ```
+
+**Advanced Trend Analysis with Moving Averages:**
+```sql
+-- Comprehensive trend analysis with moving averages
+WITH monthly_metrics AS (
+    SELECT 
+        DATE_TRUNC('month', order_date) as month,
+        SUM(total_amount) as revenue,
+        COUNT(*) as orders,
+        COUNT(DISTINCT customer_id) as unique_customers,
+        AVG(total_amount) as avg_order_value
+    FROM orders
+    GROUP BY DATE_TRUNC('month', order_date)
+),
+trend_analysis AS (
+    SELECT 
+        month,
+        revenue,
+        orders,
+        unique_customers,
+        avg_order_value,
+        -- Previous month values
+        LAG(revenue, 1) OVER (ORDER BY month) as prev_revenue,
+        LAG(orders, 1) OVER (ORDER BY month) as prev_orders,
+        LAG(unique_customers, 1) OVER (ORDER BY month) as prev_customers,
+        LAG(avg_order_value, 1) OVER (ORDER BY month) as prev_avg_order_value,
+        -- 3-month moving averages
+        AVG(revenue) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) as revenue_3m_avg,
+        AVG(orders) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) as orders_3m_avg,
+        AVG(unique_customers) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) as customers_3m_avg,
+        -- Growth calculations
+        revenue - LAG(revenue, 1) OVER (ORDER BY month) as revenue_growth,
+        ROUND((revenue * 100.0 / LAG(revenue, 1) OVER (ORDER BY month)) - 100, 2) as revenue_growth_percent,
+        orders - LAG(orders, 1) OVER (ORDER BY month) as order_growth,
+        ROUND((orders * 100.0 / LAG(orders, 1) OVER (ORDER BY month)) - 100, 2) as order_growth_percent
+    FROM monthly_metrics
+)
+SELECT 
+    month,
+    ROUND(revenue, 2) as revenue,
+    ROUND(prev_revenue, 2) as prev_revenue,
+    ROUND(revenue_growth, 2) as revenue_growth,
+    revenue_growth_percent || '%' as revenue_growth_percent,
+    ROUND(revenue_3m_avg, 2) as revenue_3m_avg,
+    orders,
+    prev_orders,
+    order_growth,
+    order_growth_percent || '%' as order_growth_percent,
+    ROUND(orders_3m_avg, 2) as orders_3m_avg,
+    ROUND(avg_order_value, 2) as avg_order_value,
+    ROUND(prev_avg_order_value, 2) as prev_avg_order_value,
+    -- Trend analysis
+    CASE 
+        WHEN revenue_growth_percent > 15 THEN 'Exceptional Growth'
+        WHEN revenue_growth_percent > 5 THEN 'Strong Growth'
+        WHEN revenue_growth_percent > 0 THEN 'Positive Growth'
+        WHEN revenue_growth_percent > -5 THEN 'Slight Decline'
+        ELSE 'Significant Decline'
+    END as revenue_trend,
+    CASE 
+        WHEN revenue > revenue_3m_avg * 1.1 THEN 'Above Trend'
+        WHEN revenue > revenue_3m_avg * 0.9 THEN 'On Trend'
+        ELSE 'Below Trend'
+    END as vs_trend
+FROM trend_analysis
+ORDER BY month;
+```
+
+#### **Key Concepts:**
+- **LAG() function**: Access previous period values
+- **Moving averages**: AVG() OVER (ROWS BETWEEN)
+- **Growth calculations**: Period-over-period changes
+- **Trend categorization**: CASE statements for business insights
+
+#### **Real-World Applications:**
+- **Business Intelligence**: Revenue trend analysis
+- **Financial Planning**: Budget vs actual trends
+- **Marketing Analysis**: Campaign performance over time
+- **Operations**: Efficiency trend monitoring
+
+---
+
+## 🎯 **EPAM Interview Success Tips for Advanced Patterns**
+
+### **1. Always Start with Business Context**
+- "This is a top N per group problem for HR analytics"
+- "We need to find customer churn patterns using gap analysis"
+- "Let's analyze revenue trends with moving averages"
+
+### **2. Break Complex Problems into Steps**
+- Use CTEs to break down complex logic
+- Start with basic window functions, then add complexity
+- Test each step before moving to the next
+
+### **3. Consider Performance Implications**
+- Use appropriate frame sizes
+- Index your PARTITION BY and ORDER BY columns
+- Consider alternatives for very large datasets
+
+### **4. Add Business Value**
+- Include meaningful column names
+- Add context with CASE statements
+- Calculate relevant business metrics
+
+**Master these patterns, and you'll be ready for any EPAM window function challenge!** 🚀
 
 ---
 
