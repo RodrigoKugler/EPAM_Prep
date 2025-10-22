@@ -741,6 +741,37 @@ SELECT *, RANK() OVER (ORDER BY sales DESC) as rank FROM sales_by_region;
 SELECT *, RANK() OVER (PARTITION BY region ORDER BY sales DESC) as region_rank FROM sales_by_region;
 ```
 
+### 6. LAST_VALUE() Without Frame Specification ⚠️ **CRITICAL**
+```sql
+-- ✗ WRONG: LAST_VALUE() without frame only looks at current row
+SELECT 
+    customer_id,
+    order_date,
+    order_amount,
+    LAST_VALUE(order_amount) OVER (
+        PARTITION BY customer_id 
+        ORDER BY order_date
+    ) as last_value  -- This is WRONG! Shows current row, not last row
+FROM orders;
+
+-- ✓ CORRECT: LAST_VALUE() needs frame to see entire partition
+SELECT 
+    customer_id,
+    order_date,
+    order_amount,
+    LAST_VALUE(order_amount) OVER (
+        PARTITION BY customer_id 
+        ORDER BY order_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) as last_value  -- This shows actual last row in partition
+FROM orders;
+```
+
+**Why This Matters:**
+- **Without frame**: LAST_VALUE() = current row's value
+- **With frame**: LAST_VALUE() = last row's value in entire partition
+- **This is a VERY common mistake** in interviews!
+
 ---
 
 ## 🚀 Performance Optimization Tips
@@ -887,7 +918,7 @@ FUNCTION() OVER (
 - `LAG(column, n)` - Previous row value
 - `LEAD(column, n)` - Next row value
 - `FIRST_VALUE(column)` - First value in window
-- `LAST_VALUE(column)` - Last value in window
+- `LAST_VALUE(column)` - **NEEDS FRAME!** Use `ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING`
 - `SUM/AVG/COUNT/MIN/MAX(column)` - Aggregates
 
 ### Frame Boundaries
