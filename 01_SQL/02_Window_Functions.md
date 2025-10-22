@@ -57,200 +57,6 @@ FROM employees;
 
 ---
 
-## 🔧 CTEs (Common Table Expressions) - The WITH Clause
-
-**Before diving into window functions, you need to understand CTEs. They're essential for complex queries and EPAM interviews!**
-
-### **What are CTEs?**
-
-CTEs (Common Table Expressions) are **temporary named result sets** that exist only for the duration of a single query. Think of them as "temporary tables" that you create on-the-fly.
-
-### **Why Use CTEs with Window Functions?**
-
-1. **Break complex logic into steps** - Easier to read and debug
-2. **Reuse calculations** - Define once, use multiple times
-3. **EPAM loves them** - Shows advanced SQL thinking
-4. **Performance** - Often more efficient than subqueries
-
-### **Basic CTE Syntax:**
-
-```sql
-WITH cte_name AS (
-    -- Your query here
-    SELECT column1, column2
-    FROM table_name
-    WHERE condition
-)
-SELECT *
-FROM cte_name
-WHERE additional_condition;
-```
-
-### **CTE with Window Functions - Step by Step:**
-
-**Problem**: "Find the top 3 highest-paid employees in each department"
-
-**Step 1: Create the CTE with Window Function**
-```sql
-WITH ranked_employees AS (
-    SELECT 
-        employee_id,
-        CONCAT(first_name, ' ', last_name) as employee_name,
-        department_id,
-        salary,
-        ROW_NUMBER() OVER (
-            PARTITION BY department_id 
-            ORDER BY salary DESC
-        ) as dept_rank
-    FROM employees
-)
--- CTE is now available for use
-```
-
-**Step 2: Use the CTE in Main Query**
-```sql
-WITH ranked_employees AS (
-    SELECT 
-        employee_id,
-        CONCAT(first_name, ' ', last_name) as employee_name,
-        department_id,
-        salary,
-        ROW_NUMBER() OVER (
-            PARTITION BY department_id 
-            ORDER BY salary DESC
-        ) as dept_rank
-    FROM employees
-)
-SELECT employee_name, department_id, salary, dept_rank
-FROM ranked_employees
-WHERE dept_rank <= 3
-ORDER BY department_id, dept_rank;
-```
-
-### **Multiple CTEs (Chained CTEs):**
-
-```sql
--- You can have multiple CTEs
-WITH 
--- First CTE: Calculate rankings
-ranked_employees AS (
-    SELECT 
-        employee_id,
-        CONCAT(first_name, ' ', last_name) as employee_name,
-        department_id,
-        salary,
-        ROW_NUMBER() OVER (
-            PARTITION BY department_id 
-            ORDER BY salary DESC
-        ) as dept_rank
-    FROM employees
-),
--- Second CTE: Filter top 3
-top_performers AS (
-    SELECT *
-    FROM ranked_employees
-    WHERE dept_rank <= 3
-)
--- Main query: Add final formatting
-SELECT 
-    employee_name,
-    department_id,
-    salary,
-    dept_rank,
-    'Top ' || dept_rank || ' in Department' as performance_status
-FROM top_performers
-ORDER BY department_id, dept_rank;
-```
-
-### **CTE vs Subquery Comparison:**
-
-**Subquery (Harder to Read):**
-```sql
-SELECT employee_name, department_id, salary
-FROM (
-    SELECT 
-        CONCAT(first_name, ' ', last_name) as employee_name,
-        department_id,
-        salary,
-        ROW_NUMBER() OVER (
-            PARTITION BY department_id 
-            ORDER BY salary DESC
-        ) as dept_rank
-    FROM employees
-) ranked_employees
-WHERE dept_rank <= 3;
-```
-
-**CTE (Easier to Read):**
-```sql
-WITH ranked_employees AS (
-    SELECT 
-        CONCAT(first_name, ' ', last_name) as employee_name,
-        department_id,
-        salary,
-        ROW_NUMBER() OVER (
-            PARTITION BY department_id 
-            ORDER BY salary DESC
-        ) as dept_rank
-    FROM employees
-)
-SELECT employee_name, department_id, salary
-FROM ranked_employees
-WHERE dept_rank <= 3;
-```
-
-### **CTE Best Practices:**
-
-1. **Use descriptive names** - `ranked_employees` not `cte1`
-2. **One concept per CTE** - Don't mix too many calculations
-3. **Order logically** - Most specific CTEs first
-4. **Test incrementally** - Run each CTE separately first
-
-### **Common CTE Patterns with Window Functions:**
-
-#### **Pattern 1: Ranking + Filtering**
-```sql
-WITH ranked_data AS (
-    SELECT *, ROW_NUMBER() OVER (PARTITION BY group ORDER BY value DESC) as rank
-    FROM table_name
-)
-SELECT * FROM ranked_data WHERE rank <= 3;
-```
-
-#### **Pattern 2: Calculations + Aggregations**
-```sql
-WITH calculated_data AS (
-    SELECT *, 
-           LAG(value) OVER (PARTITION BY group ORDER BY date) as prev_value,
-           value - LAG(value) OVER (PARTITION BY group ORDER BY date) as change
-    FROM table_name
-)
-SELECT group, AVG(change) as avg_change
-FROM calculated_data
-GROUP BY group;
-```
-
-#### **Pattern 3: Multiple Window Functions**
-```sql
-WITH multi_calculations AS (
-    SELECT *,
-           ROW_NUMBER() OVER (PARTITION BY group ORDER BY value DESC) as rank,
-           AVG(value) OVER (PARTITION BY group) as group_avg,
-           LAG(value) OVER (PARTITION BY group ORDER BY date) as prev_value
-    FROM table_name
-)
-SELECT * FROM multi_calculations WHERE rank <= 5;
-```
-
-### **EPAM Interview Tips for CTEs:**
-
-1. **Always explain your approach** - "I'll use a CTE to break this into steps"
-2. **Name CTEs meaningfully** - Shows you understand the data
-3. **Test each step** - "Let me verify this CTE works first"
-4. **Consider performance** - CTEs can be more efficient than subqueries
-
----
-
 ## 🔥 Core Window Functions - Complete Guide
 
 ### 1. ROW_NUMBER() - Sequential Numbering
@@ -785,6 +591,200 @@ ORDER BY cid, order_date;
 - **SUM() with ROWS BETWEEN**: Creates running total
 
 **Practice this solution until you can write it in under 5 minutes!**
+
+---
+
+## 🔧 CTEs (Common Table Expressions) - The WITH Clause
+
+**Now that you understand window functions, let's learn how to use CTEs to make them more powerful and readable!**
+
+### **What are CTEs?**
+
+CTEs (Common Table Expressions) are **temporary named result sets** that exist only for the duration of a single query. Think of them as "temporary tables" that you create on-the-fly.
+
+### **Why Use CTEs with Window Functions?**
+
+1. **Break complex logic into steps** - Easier to read and debug
+2. **Reuse calculations** - Define once, use multiple times
+3. **EPAM loves them** - Shows advanced SQL thinking
+4. **Performance** - Often more efficient than subqueries
+
+### **Basic CTE Syntax:**
+
+```sql
+WITH cte_name AS (
+    -- Your query here
+    SELECT column1, column2
+    FROM table_name
+    WHERE condition
+)
+SELECT *
+FROM cte_name
+WHERE additional_condition;
+```
+
+### **CTE with Window Functions - Step by Step:**
+
+**Problem**: "Find the top 3 highest-paid employees in each department"
+
+**Step 1: Create the CTE with Window Function**
+```sql
+WITH ranked_employees AS (
+    SELECT 
+        employee_id,
+        CONCAT(first_name, ' ', last_name) as employee_name,
+        department_id,
+        salary,
+        ROW_NUMBER() OVER (
+            PARTITION BY department_id 
+            ORDER BY salary DESC
+        ) as dept_rank
+    FROM employees
+)
+-- CTE is now available for use
+```
+
+**Step 2: Use the CTE in Main Query**
+```sql
+WITH ranked_employees AS (
+    SELECT 
+        employee_id,
+        CONCAT(first_name, ' ', last_name) as employee_name,
+        department_id,
+        salary,
+        ROW_NUMBER() OVER (
+            PARTITION BY department_id 
+            ORDER BY salary DESC
+        ) as dept_rank
+    FROM employees
+)
+SELECT employee_name, department_id, salary, dept_rank
+FROM ranked_employees
+WHERE dept_rank <= 3
+ORDER BY department_id, dept_rank;
+```
+
+### **Multiple CTEs (Chained CTEs):**
+
+```sql
+-- You can have multiple CTEs
+WITH 
+-- First CTE: Calculate rankings
+ranked_employees AS (
+    SELECT 
+        employee_id,
+        CONCAT(first_name, ' ', last_name) as employee_name,
+        department_id,
+        salary,
+        ROW_NUMBER() OVER (
+            PARTITION BY department_id 
+            ORDER BY salary DESC
+        ) as dept_rank
+    FROM employees
+),
+-- Second CTE: Filter top 3
+top_performers AS (
+    SELECT *
+    FROM ranked_employees
+    WHERE dept_rank <= 3
+)
+-- Main query: Add final formatting
+SELECT 
+    employee_name,
+    department_id,
+    salary,
+    dept_rank,
+    'Top ' || dept_rank || ' in Department' as performance_status
+FROM top_performers
+ORDER BY department_id, dept_rank;
+```
+
+### **CTE vs Subquery Comparison:**
+
+**Subquery (Harder to Read):**
+```sql
+SELECT employee_name, department_id, salary
+FROM (
+    SELECT 
+        CONCAT(first_name, ' ', last_name) as employee_name,
+        department_id,
+        salary,
+        ROW_NUMBER() OVER (
+            PARTITION BY department_id 
+            ORDER BY salary DESC
+        ) as dept_rank
+    FROM employees
+) ranked_employees
+WHERE dept_rank <= 3;
+```
+
+**CTE (Easier to Read):**
+```sql
+WITH ranked_employees AS (
+    SELECT 
+        CONCAT(first_name, ' ', last_name) as employee_name,
+        department_id,
+        salary,
+        ROW_NUMBER() OVER (
+            PARTITION BY department_id 
+            ORDER BY salary DESC
+        ) as dept_rank
+    FROM employees
+)
+SELECT employee_name, department_id, salary
+FROM ranked_employees
+WHERE dept_rank <= 3;
+```
+
+### **CTE Best Practices:**
+
+1. **Use descriptive names** - `ranked_employees` not `cte1`
+2. **One concept per CTE** - Don't mix too many calculations
+3. **Order logically** - Most specific CTEs first
+4. **Test incrementally** - Run each CTE separately first
+
+### **Common CTE Patterns with Window Functions:**
+
+#### **Pattern 1: Ranking + Filtering**
+```sql
+WITH ranked_data AS (
+    SELECT *, ROW_NUMBER() OVER (PARTITION BY group ORDER BY value DESC) as rank
+    FROM table_name
+)
+SELECT * FROM ranked_data WHERE rank <= 3;
+```
+
+#### **Pattern 2: Calculations + Aggregations**
+```sql
+WITH calculated_data AS (
+    SELECT *, 
+           LAG(value) OVER (PARTITION BY group ORDER BY date) as prev_value,
+           value - LAG(value) OVER (PARTITION BY group ORDER BY date) as change
+    FROM table_name
+)
+SELECT group, AVG(change) as avg_change
+FROM calculated_data
+GROUP BY group;
+```
+
+#### **Pattern 3: Multiple Window Functions**
+```sql
+WITH multi_calculations AS (
+    SELECT *,
+           ROW_NUMBER() OVER (PARTITION BY group ORDER BY value DESC) as rank,
+           AVG(value) OVER (PARTITION BY group) as group_avg,
+           LAG(value) OVER (PARTITION BY group ORDER BY date) as prev_value
+    FROM table_name
+)
+SELECT * FROM multi_calculations WHERE rank <= 5;
+```
+
+### **EPAM Interview Tips for CTEs:**
+
+1. **Always explain your approach** - "I'll use a CTE to break this into steps"
+2. **Name CTEs meaningfully** - Shows you understand the data
+3. **Test each step** - "Let me verify this CTE works first"
+4. **Consider performance** - CTEs can be more efficient than subqueries
 
 ---
 
