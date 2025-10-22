@@ -39,10 +39,12 @@ Same as Exercise 2, but use DENSE_RANK to avoid gaps in ranking.
 ## Exercise 4: Running Total - EPAM STYLE ⭐
 Write a query to calculate the cumulative sum of order values for each customer.
 
-**Table**: orders (customer_id, order_id, order_date, order_value)  
-**Expected**: customer_id, order_id, order_date, order_value, running_total  
+**Table**: orders (customer_id, order_id, order_date, total_amount)  
+**Expected**: customer_id, order_id, order_date, total_amount, running_total  
 **PARTITION BY**: customer_id  
 **ORDER BY**: order_date
+
+**Note**: Use `total_amount` column (not `order_value`)
 
 This is the EXACT type EPAM asks!
 
@@ -111,7 +113,7 @@ Find the top 3 highest-paid employees in each department.
 ## Exercise 14: Percentage of Total
 Calculate each order's percentage of the customer's total spending.
 
-**Expected**: customer_id, order_value, customer_total, percentage
+**Expected**: customer_id, total_amount, customer_total, percentage
 
 ---
 
@@ -129,7 +131,7 @@ Given the orders table below:
 
 ```
 +-----+------------+--------------+---------------+
-| cid |  order_id  |  order_date  |  order_value  |
+| cid |  order_id  |  order_date  |  total_amount |
 +-----+------------+--------------+---------------+
 |  A  |   qwerty   |     1-Jan    |      10       |
 |  A  |   asdfgh   |     3-Jan    |      20       |
@@ -142,7 +144,7 @@ Given the orders table below:
 Write SQL to generate:
 ```
 +-----+------------+--------------+---------------+---------------------+---------------------+
-| cid |  order_id  |  order_date  |  order_value  | order_count_history | order_value_history |
+| cid |  order_id  |  order_date  |  total_amount | order_count_history | order_value_history |
 +-----+------------+--------------+---------------+---------------------+---------------------+
 |  A  |   qwerty   |     1-Jan    |      10       |         1           |         10          |
 |  A  |   asdfgh   |     3-Jan    |      20       |         2           |         30          |
