@@ -1,4 +1,4 @@
-olum# SQL Window Functions - Complete Mastery Guide
+# SQL Window Functions - Complete Mastery Guide
 
 ## 🎯 Learning Objectives
 
@@ -7,7 +7,7 @@ By the end of this module, you will be able to:
 - **Understand PARTITION BY** and use it effectively
 - **Control frame specifications** (ROWS vs RANGE, boundaries)
 - **Solve EPAM's favorite cumulative problems** in under 10 minutes
-- **Apply window functions** to real business scenarios
+- **Apply window functions** to real business scenarios using our epam_practice.db database
 - **Optimize window function queries** for performance
 - **Explain concepts clearly** in technical interviews
 
@@ -35,25 +35,51 @@ Window functions perform calculations across a set of rows **without collapsing 
 ```sql
 -- GROUP BY: Collapses rows (loses individual records)
 SELECT 
-    department,
-    AVG(salary) as avg_salary,
+    d.department_name,
+    AVG(e.salary) as avg_salary,
     COUNT(*) as employee_count
-FROM employees
-GROUP BY department;
--- Result: Only 3 rows (one per department)
+FROM employees e
+JOIN departments d ON e.department_id = d.department_id
+GROUP BY d.department_name;
+-- Result: Only 8 rows (one per department)
 
 -- WINDOW FUNCTION: Keeps all rows (preserves individual records)
 SELECT 
-    employee_name,
-    department,
-    salary,
-    AVG(salary) OVER (PARTITION BY department) as dept_avg_salary,
-    COUNT(*) OVER (PARTITION BY department) as dept_employee_count
-FROM employees;
+    e.first_name || ' ' || e.last_name as employee_name,
+    d.department_name,
+    e.salary,
+    AVG(e.salary) OVER (PARTITION BY e.department_id) as dept_avg_salary,
+    COUNT(*) OVER (PARTITION BY e.department_id) as dept_employee_count
+FROM employees e
+JOIN departments d ON e.department_id = d.department_id;
 -- Result: All employee rows with their department statistics
 ```
 
 **Key Insight**: Window functions let you **compare each row to its peers** without losing the original data.
+
+---
+
+## 🗄️ Our Database Schema (epam_practice.db)
+
+**Before diving into window functions, let's understand our database structure:**
+
+### **Key Tables for Window Functions:**
+- **employees**: employee_id, first_name, last_name, department_id, salary, manager_id, job_title
+- **departments**: department_id, department_name, manager_id, budget
+- **customers**: customer_id, first_name, last_name, city, customer_segment, total_spent, is_vip
+- **orders**: order_id, customer_id, order_date, total_amount, order_status
+- **sales**: sale_id, rep_id, territory_id, sale_date, total_amount, commission_earned
+
+### **Quick Schema Check:**
+```sql
+-- Verify our database structure
+SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;
+
+-- Check record counts
+SELECT 'employees' as table_name, COUNT(*) as record_count FROM employees
+UNION ALL SELECT 'orders', COUNT(*) FROM orders
+UNION ALL SELECT 'customers', COUNT(*) FROM customers;
+```
 
 ---
 
@@ -64,37 +90,35 @@ FROM employees;
 **Purpose**: Assigns unique sequential numbers (1, 2, 3, 4...)
 
 ```sql
--- Basic usage
+-- Basic usage - Global numbering
 SELECT 
-    customer_name,
-    order_date,
-    order_amount,
-    ROW_NUMBER() OVER (ORDER BY order_date) as order_sequence
-FROM orders;
+    c.first_name || ' ' || c.last_name as customer_name,
+    o.order_date,
+    o.total_amount,
+    ROW_NUMBER() OVER (ORDER BY o.order_date) as order_sequence
+FROM orders o
+JOIN customers c ON o.customer_id = c.customer_id
+ORDER BY o.order_date
+LIMIT 10;
 ```
 
 **Real-World Example**: Customer order history
 ```sql
 -- Number each customer's orders chronologically
 SELECT 
-    customer_id,
-    order_date,
-    order_amount,
+    o.customer_id,
+    c.first_name || ' ' || c.last_name as customer_name,
+    o.order_date,
+    o.total_amount,
     ROW_NUMBER() OVER (
-        PARTITION BY customer_id 
-        ORDER BY order_date
+        PARTITION BY o.customer_id 
+        ORDER BY o.order_date
     ) as order_number_for_customer
-FROM orders;
+FROM orders o
+JOIN customers c ON o.customer_id = c.customer_id
+WHERE o.customer_id <= 5
+ORDER BY o.customer_id, o.order_date;
 ```
-
-**Result**:
-| customer_id | order_date | order_amount | order_number_for_customer |
-|-------------|------------|--------------|---------------------------|
-| A | 2024-01-01 | 100 | 1 |
-| A | 2024-01-15 | 150 | 2 |
-| A | 2024-02-01 | 200 | 3 |
-| B | 2024-01-05 | 75 | 1 |
-| B | 2024-01-20 | 125 | 2 |
 
 **Use Cases**:
 - Pagination (LIMIT with OFFSET)
@@ -110,31 +134,32 @@ FROM orders;
 ```sql
 -- Rank employees by salary
 SELECT 
-    employee_name,
-    department,
-    salary,
-    RANK() OVER (ORDER BY salary DESC) as salary_rank
-FROM employees;
+    e.first_name || ' ' || e.last_name as employee_name,
+    d.department_name,
+    e.salary,
+    RANK() OVER (ORDER BY e.salary DESC) as salary_rank
+FROM employees e
+JOIN departments d ON e.department_id = d.department_id
+ORDER BY e.salary DESC
+LIMIT 10;
 ```
-
-**Example Results**:
-| employee_name | department | salary | salary_rank |
-|---------------|------------|--------|-------------|
-| Alice | Sales | 100000 | 1 |
-| Bob | IT | 100000 | 1 |
-| Charlie | Sales | 95000 | 3 | ← Gap! (no rank 2) |
-| Dave | IT | 90000 | 4 |
 
 **Real-World Example**: Sales leaderboard
 ```sql
--- Monthly sales ranking across all regions
+-- Monthly sales ranking across all territories
 SELECT 
-    sales_rep_name,
-    region,
-    monthly_sales,
-    RANK() OVER (ORDER BY monthly_sales DESC) as overall_rank,
-    RANK() OVER (PARTITION BY region ORDER BY monthly_sales DESC) as region_rank
-FROM monthly_sales;
+    sr.rep_name,
+    st.territory_name,
+    SUM(s.total_amount) as monthly_sales,
+    RANK() OVER (ORDER BY SUM(s.total_amount) DESC) as overall_rank,
+    RANK() OVER (PARTITION BY st.territory_id ORDER BY SUM(s.total_amount) DESC) as territory_rank
+FROM sales_reps sr
+JOIN sales_territories st ON sr.territory_id = st.territory_id
+JOIN sales s ON sr.rep_id = s.rep_id
+WHERE s.sale_date >= '2024-01-01'
+GROUP BY sr.rep_id, sr.rep_name, st.territory_name
+ORDER BY monthly_sales DESC
+LIMIT 10;
 ```
 
 **Use Cases**:
@@ -151,20 +176,15 @@ FROM monthly_sales;
 ```sql
 -- Same query as RANK, but with DENSE_RANK
 SELECT 
-    employee_name,
-    department,
-    salary,
-    DENSE_RANK() OVER (ORDER BY salary DESC) as salary_rank
-FROM employees;
+    e.first_name || ' ' || e.last_name as employee_name,
+    d.department_name,
+    e.salary,
+    DENSE_RANK() OVER (ORDER BY e.salary DESC) as salary_rank
+FROM employees e
+JOIN departments d ON e.department_id = d.department_id
+ORDER BY e.salary DESC
+LIMIT 10;
 ```
-
-**Example Results**:
-| employee_name | department | salary | salary_rank |
-|---------------|------------|--------|-------------|
-| Alice | Sales | 100000 | 1 |
-| Bob | IT | 100000 | 1 |
-| Charlie | Sales | 95000 | 2 | ← No gap! |
-| Dave | IT | 90000 | 3 |
 
 **When to use DENSE_RANK vs RANK**:
 - **RANK**: When gaps make sense (sports, competitions)
@@ -180,53 +200,40 @@ FROM employees;
 ```sql
 -- Compare current order with previous order
 SELECT 
-    customer_id,
-    order_date,
-    order_amount,
-    LAG(order_amount, 1) OVER (
-        PARTITION BY customer_id 
-        ORDER BY order_date
+    o.customer_id,
+    c.first_name || ' ' || c.last_name as customer_name,
+    o.order_date,
+    o.total_amount,
+    LAG(o.total_amount, 1) OVER (
+        PARTITION BY o.customer_id 
+        ORDER BY o.order_date
     ) as previous_order_amount,
-    order_amount - LAG(order_amount, 1) OVER (
-        PARTITION BY customer_id 
-        ORDER BY order_date
+    o.total_amount - LAG(o.total_amount, 1) OVER (
+        PARTITION BY o.customer_id 
+        ORDER BY o.order_date
     ) as amount_change
-FROM orders;
+FROM orders o
+JOIN customers c ON o.customer_id = c.customer_id
+WHERE o.customer_id <= 3
+ORDER BY o.customer_id, o.order_date;
 ```
 
 #### LEAD() - Look Forward
 ```sql
 -- Compare current order with next order
 SELECT 
-    customer_id,
-    order_date,
-    order_amount,
-    LEAD(order_date, 1) OVER (
-        PARTITION BY customer_id 
-        ORDER BY order_date
-    ) as next_order_date,
-    JULIANDAY(LEAD(order_date, 1) OVER (
-        PARTITION BY customer_id 
-        ORDER BY order_date
-    )) - JULIANDAY(order_date) as days_until_next_order
-FROM orders;
-```
-
-**Real-World Example**: Customer behavior analysis
-```sql
--- Analyze customer order patterns
-SELECT 
-    customer_id,
-    order_date,
-    order_amount,
-    -- Previous order info
-    LAG(order_amount) OVER (PARTITION BY customer_id ORDER BY order_date) as prev_amount,
-    LAG(order_date) OVER (PARTITION BY customer_id ORDER BY order_date) as prev_date,
-    -- Calculate metrics
-    order_amount - LAG(order_amount) OVER (PARTITION BY customer_id ORDER BY order_date) as amount_growth,
-    JULIANDAY(order_date) - JULIANDAY(LAG(order_date) OVER (PARTITION BY customer_id ORDER BY order_date)) as days_since_last_order
-FROM orders
-WHERE customer_id = 'A';
+    o.customer_id,
+    c.first_name || ' ' || c.last_name as customer_name,
+    o.order_date,
+    o.total_amount,
+    LEAD(o.order_date, 1) OVER (
+        PARTITION BY o.customer_id 
+        ORDER BY o.order_date
+    ) as next_order_date
+FROM orders o
+JOIN customers c ON o.customer_id = c.customer_id
+WHERE o.customer_id <= 3
+ORDER BY o.customer_id, o.order_date;
 ```
 
 **Use Cases**:
@@ -244,46 +251,24 @@ WHERE customer_id = 'A';
 ```sql
 -- Get first and last order amounts for each customer
 SELECT 
-    customer_id,
-    order_date,
-    order_amount,
-    FIRST_VALUE(order_amount) OVER (
-        PARTITION BY customer_id 
-        ORDER BY order_date
+    o.customer_id,
+    c.first_name || ' ' || c.last_name as customer_name,
+    o.order_date,
+    o.total_amount,
+    FIRST_VALUE(o.total_amount) OVER (
+        PARTITION BY o.customer_id 
+        ORDER BY o.order_date 
         ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
     ) as first_order_amount,
-    LAST_VALUE(order_amount) OVER (
-        PARTITION BY customer_id 
-        ORDER BY order_date
+    LAST_VALUE(o.total_amount) OVER (
+        PARTITION BY o.customer_id 
+        ORDER BY o.order_date 
         ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
     ) as last_order_amount
-FROM orders;
-```
-
-**Real-World Example**: Customer journey analysis
-```sql
--- Track customer value progression
-SELECT 
-    customer_id,
-    order_date,
-    order_amount,
-    FIRST_VALUE(order_amount) OVER (
-        PARTITION BY customer_id 
-        ORDER BY order_date
-        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-    ) as first_purchase,
-    LAST_VALUE(order_amount) OVER (
-        PARTITION BY customer_id 
-        ORDER BY order_date
-        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-    ) as latest_purchase,
-    -- Calculate growth
-    order_amount - FIRST_VALUE(order_amount) OVER (
-        PARTITION BY customer_id 
-        ORDER BY order_date
-        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-    ) as growth_from_first
-FROM orders;
+FROM orders o
+JOIN customers c ON o.customer_id = c.customer_id
+WHERE o.customer_id <= 3
+ORDER BY o.customer_id, o.order_date;
 ```
 
 **Use Cases**:
@@ -301,53 +286,101 @@ FROM orders;
 ```sql
 -- Classic running total
 SELECT 
-    order_date,
-    order_amount,
-    SUM(order_amount) OVER (
-        ORDER BY order_date
+    o.order_date,
+    o.total_amount,
+    SUM(o.total_amount) OVER (
+        ORDER BY o.order_date
         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
     ) as running_total
-FROM orders;
+FROM orders o
+ORDER BY o.order_date
+LIMIT 10;
 ```
 
 #### Moving Average
 ```sql
 -- 7-day moving average
 SELECT 
-    order_date,
-    order_amount,
-    AVG(order_amount) OVER (
-        ORDER BY order_date 
+    s.sale_date,
+    s.total_amount,
+    AVG(s.total_amount) OVER (
+        ORDER BY s.sale_date 
         ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
     ) as moving_avg_7_days
-FROM orders;
+FROM sales s
+ORDER BY s.sale_date
+LIMIT 10;
 ```
 
 #### Running Count
 ```sql
 -- Count orders up to each date
 SELECT 
-    order_date,
-    order_amount,
+    o.order_date,
+    o.total_amount,
     COUNT(*) OVER (
-        ORDER BY order_date
+        ORDER BY o.order_date
         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
     ) as running_count
-FROM orders;
+FROM orders o
+ORDER BY o.order_date
+LIMIT 10;
 ```
 
-**Real-World Example**: Financial dashboard
+---
+
+## 🔧 Supporting Functions - Essential Tools
+
+### JULIANDAY() - Date Arithmetic
+
+**Purpose**: Convert dates to numbers for easy arithmetic
+
 ```sql
--- Monthly financial metrics
+-- Days since last order
 SELECT 
-    month,
-    revenue,
-    -- Running totals
-    SUM(revenue) OVER (ORDER BY month) as cumulative_revenue,
-    AVG(revenue) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) as moving_avg_3_months,
-    -- Percent of total
-    revenue * 100.0 / SUM(revenue) OVER () as percent_of_total
-FROM monthly_financials;
+    o.customer_id,
+    c.first_name || ' ' || c.last_name as customer_name,
+    o.order_date,
+    LAG(o.order_date) OVER (PARTITION BY o.customer_id ORDER BY o.order_date) as prev_order_date,
+    JULIANDAY(o.order_date) - JULIANDAY(LAG(o.order_date) OVER (PARTITION BY o.customer_id ORDER BY o.order_date)) as days_since_last_order
+FROM orders o
+JOIN customers c ON o.customer_id = c.customer_id
+WHERE o.customer_id <= 3
+ORDER BY o.customer_id, o.order_date;
+```
+
+### ROUND() - Professional Results
+
+**Purpose**: Round numeric values to specified decimal places
+
+```sql
+-- Rounding averages
+SELECT 
+    e.department_id,
+    d.department_name,
+    e.first_name || ' ' || e.last_name as employee_name,
+    e.salary,
+    AVG(e.salary) OVER (PARTITION BY e.department_id) as raw_avg,
+    ROUND(AVG(e.salary) OVER (PARTITION BY e.department_id), 2) as rounded_avg
+FROM employees e
+JOIN departments d ON e.department_id = d.department_id
+ORDER BY e.department_id, e.salary DESC;
+```
+
+### CONCAT() - String Concatenation
+
+**Purpose**: Combine strings for readable results
+
+```sql
+-- Combine first and last names
+SELECT 
+    e.first_name || ' ' || e.last_name as full_name,
+    d.department_name,
+    e.salary,
+    RANK() OVER (PARTITION BY e.department_id ORDER BY e.salary DESC) as dept_rank
+FROM employees e
+JOIN departments d ON e.department_id = d.department_id
+ORDER BY e.department_id, e.salary DESC;
 ```
 
 ---
@@ -360,33 +393,29 @@ FROM monthly_financials;
 ```sql
 -- One window for entire table
 SELECT 
-    employee_name,
-    salary,
-    RANK() OVER (ORDER BY salary DESC) as global_salary_rank
-FROM employees;
+    e.first_name || ' ' || e.last_name as employee_name,
+    e.salary,
+    RANK() OVER (ORDER BY e.salary DESC) as global_salary_rank
+FROM employees e
+ORDER BY e.salary DESC
+LIMIT 10;
 ```
 
 ### With PARTITION BY (Grouped Windows)
 ```sql
 -- Separate window for each department
 SELECT 
-    employee_name,
-    department,
-    salary,
+    e.first_name || ' ' || e.last_name as employee_name,
+    d.department_name,
+    e.salary,
     RANK() OVER (
-        PARTITION BY department 
-        ORDER BY salary DESC
+        PARTITION BY e.department_id 
+        ORDER BY e.salary DESC
     ) as dept_salary_rank
-FROM employees;
+FROM employees e
+JOIN departments d ON e.department_id = d.department_id
+ORDER BY e.department_id, e.salary DESC;
 ```
-
-**Result Comparison**:
-| employee_name | department | salary | global_rank | dept_rank |
-|---------------|------------|--------|-------------|-----------|
-| Alice | Sales | 100000 | 1 | 1 |
-| Bob | IT | 110000 | 1 | 1 |
-| Charlie | Sales | 95000 | 3 | 2 |
-| Dave | IT | 105000 | 2 | 2 |
 
 **Key Insight**: PARTITION BY **resets the window** for each group.
 
@@ -394,20 +423,20 @@ FROM employees;
 ```sql
 -- Comprehensive department analysis
 SELECT 
-    employee_name,
-    department,
-    salary,
+    e.first_name || ' ' || e.last_name as employee_name,
+    d.department_name,
+    e.salary,
     -- Global rankings
-    RANK() OVER (ORDER BY salary DESC) as global_rank,
-    RANK() OVER (PARTITION BY department ORDER BY salary DESC) as dept_rank,
+    RANK() OVER (ORDER BY e.salary DESC) as global_rank,
+    RANK() OVER (PARTITION BY e.department_id ORDER BY e.salary DESC) as dept_rank,
     -- Department statistics
-    AVG(salary) OVER (PARTITION BY department) as dept_avg_salary,
-    MAX(salary) OVER (PARTITION BY department) as dept_max_salary,
+    AVG(e.salary) OVER (PARTITION BY e.department_id) as dept_avg_salary,
+    MAX(e.salary) OVER (PARTITION BY e.department_id) as dept_max_salary,
     -- Salary position within department
-    salary - AVG(salary) OVER (PARTITION BY department) as salary_vs_dept_avg,
-    -- Percentile within department
-    NTILE(4) OVER (PARTITION BY department ORDER BY salary DESC) as dept_quartile
-FROM employees;
+    e.salary - AVG(e.salary) OVER (PARTITION BY e.department_id) as salary_vs_dept_avg
+FROM employees e
+JOIN departments d ON e.department_id = d.department_id
+ORDER BY e.department_id, e.salary DESC;
 ```
 
 ---
@@ -472,12 +501,6 @@ AVG(amount) OVER (
     ORDER BY date 
     ROWS BETWEEN 6 PRECEDING AND CURRENT ROW
 )
-
--- Last 30 days (if daily data)
-AVG(amount) OVER (
-    ORDER BY date 
-    ROWS BETWEEN 29 PRECEDING AND CURRENT ROW
-)
 ```
 
 #### 3. Centered Moving Average
@@ -489,262 +512,24 @@ AVG(amount) OVER (
 )
 ```
 
-#### 4. Future Cumulative (Reverse Running Total)
-```sql
--- From current to end
-SUM(amount) OVER (
-    ORDER BY date 
-    ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
-)
-```
-
-#### 5. Rolling Window
-```sql
--- Last 12 months
-SUM(amount) OVER (
-    ORDER BY date 
-    ROWS BETWEEN 11 PRECEDING AND CURRENT ROW
-)
-```
-
----
-
-## 🎯 EPAM Interview Example - The Classic Problem
-
-**This is THE problem EPAM asks. Master this = you're ready.**
-
-### Problem Statement
-Calculate cumulative count and cumulative sum of orders per customer.
-
-**Given**:
-```sql
--- Orders table
-+-----+------------+--------------+---------------+
-| cid |  order_id  |  order_date  |  order_value  |
-+-----+------------+--------------+---------------+
-|  A  |   qwerty   |     1-Jan    |      10       |
-|  A  |   asdfgh   |     3-Jan    |      20       |
-|  A  |   zxcvbn   |     10-Jan   |      30       |
-|  B  |   uiopyy   |     2-Jan    |      40       |
-|  B  |   lkjhgf   |     6-Jan    |      50       |
-|  B  |   mnbvcx   |     8-Jan    |      60       |
-|  B  |   rtyfgh   |     10-Jan   |      70       |
-|  C  |   fghcvb   |     1-Feb    |      80       |
-|  C  |   bnmghj   |     1-Feb    |      90       |
-|  C  |   wersdf   |     3-Feb    |      100      |
-|  C  |   asdzxc   |     4-Feb    |      110      |
-+-----+------------+--------------+---------------+
-```
-
-**Expected Output**:
-```sql
-+-----+------------+--------------+---------------+---------------------+---------------------+
-| cid |  order_id  |  order_date  |  order_value  | order_count_history | order_value_history |
-+-----+------------+--------------+---------------+---------------------+---------------------+
-|  A  |   qwerty   |     1-Jan    |      10       |         1           |         10          |
-|  A  |   asdfgh   |     3-Jan    |      20       |         2           |         30          |
-|  A  |   zxcvbn   |     10-Jan   |      30       |         3           |         60          |
-|  B  |   uiopyy   |     2-Jan    |      40       |         1           |         40          |
-|  B  |   lkjhgf   |     6-Jan    |      50       |         2           |         90          |
-|  B  |   mnbvcx   |     8-Jan    |      60       |         3           |         150         |
-|  B  |   rtyfgh   |     10-Jan   |      70       |         4           |         220         |
-|  C  |   fghcvb   |     1-Feb    |      80       |         1           |         80          |
-|  C  |   bnmghj   |     1-Feb    |      90       |         2           |         170         |
-|  C  |   wersdf   |     3-Feb    |      100      |         3           |         270         |
-|  C  |   asdzxc   |     4-Feb    |      110      |         4           |         380         |
-+-----+------------+--------------+---------------+---------------------+---------------------+
-```
-
-### Solution (Master This!)
-```sql
-SELECT 
-    cid,
-    order_id,
-    order_date,
-    order_value,
-    -- Cumulative count: ROW_NUMBER resets for each customer
-    ROW_NUMBER() OVER (
-        PARTITION BY cid 
-        ORDER BY order_date
-    ) as order_count_history,
-    -- Cumulative sum: SUM with explicit frame
-    SUM(order_value) OVER (
-        PARTITION BY cid 
-        ORDER BY order_date
-        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-    ) as order_value_history
-FROM orders
-ORDER BY cid, order_date;
-```
-
-### Step-by-Step Explanation
-
-1. **PARTITION BY cid**: Creates separate windows for each customer
-2. **ORDER BY order_date**: Orders within each window chronologically
-3. **ROW_NUMBER()**: Counts 1, 2, 3... for each customer's orders
-4. **SUM() with frame**: Adds all previous values up to current row
-
-### Why This Works
-- **PARTITION BY cid**: Resets counters for each customer
-- **ORDER BY order_date**: Ensures chronological order
-- **ROW_NUMBER()**: Gives sequential count (1, 2, 3...)
-- **SUM() with ROWS BETWEEN**: Creates running total
-
-**Practice this solution until you can write it in under 5 minutes!**
-
----
-
-## 🔢 ROUND() Function - Essential for Professional Results
-
-**ROUND() is crucial for window function results. Never show messy decimals in EPAM interviews!**
-
-### **What is ROUND()?**
-
-ROUND() rounds a numeric value to a specified number of decimal places.
-
-### **Basic ROUND() Syntax:**
-
-```sql
-ROUND(value, decimal_places)
-```
-
-- **value**: The number to round
-- **decimal_places**: How many decimal places (0 = whole number, 2 = two decimals)
-
-### **ROUND() Examples:**
-
-```sql
--- Basic rounding examples
-SELECT 
-    ROUND(123.456, 0) as round_0,      -- 123 (whole number)
-    ROUND(123.456, 1) as round_1,      -- 123.5 (one decimal)
-    ROUND(123.456, 2) as round_2,      -- 123.46 (two decimals)
-    ROUND(123.456, -1) as round_neg1,  -- 120 (rounds to nearest 10)
-    ROUND(123.456, -2) as round_neg2;  -- 100 (rounds to nearest 100)
-```
-
-**Output:**
-```
-round_0 | round_1 | round_2 | round_neg1 | round_neg2
---------|---------|---------|------------|------------
-123     | 123.5   | 123.46  | 120        | 100
-```
-
-### **ROUND() with Window Functions:**
-
-#### **1. Rounding Averages:**
-```sql
-SELECT 
-    department_id,
-    salary,
-    AVG(salary) OVER (PARTITION BY department_id) as raw_avg,
-    ROUND(AVG(salary) OVER (PARTITION BY department_id), 2) as rounded_avg
-FROM employees;
-```
-
-#### **2. Rounding Percentages:**
-```sql
-SELECT 
-    customer_id,
-    order_amount,
-    SUM(order_amount) OVER (PARTITION BY customer_id) as customer_total,
-    ROUND((order_amount * 100.0 / SUM(order_amount) OVER (PARTITION BY customer_id)), 2) as percent_of_total
-FROM orders;
-```
-
-#### **3. Rounding Growth Calculations:**
-```sql
-SELECT 
-    month,
-    revenue,
-    LAG(revenue) OVER (ORDER BY month) as prev_revenue,
-    ROUND(((revenue - LAG(revenue) OVER (ORDER BY month)) * 100.0 / LAG(revenue) OVER (ORDER BY month)), 2) as growth_percent
-FROM monthly_revenue;
-```
-
-### **Common ROUND() Patterns:**
-
-#### **Pattern 1: Financial Data (2 decimals)**
-```sql
-SELECT 
-    customer_id,
-    order_amount,
-    ROUND(order_amount, 2) as rounded_amount,
-    ROUND(SUM(order_amount) OVER (PARTITION BY customer_id), 2) as customer_total
-FROM orders;
-```
-
-#### **Pattern 2: Percentages (1-2 decimals)**
-```sql
-SELECT 
-    employee_name,
-    salary,
-    ROUND((salary * 100.0 / AVG(salary) OVER ()), 1) as percent_vs_avg
-FROM employees;
-```
-
-#### **Pattern 3: Statistical Measures (2-3 decimals)**
-```sql
-SELECT 
-    department_id,
-    salary,
-    ROUND(AVG(salary) OVER (PARTITION BY department_id), 2) as dept_avg,
-    ROUND(STDDEV(salary) OVER (PARTITION BY department_id), 3) as dept_stddev
-FROM employees;
-```
-
-### **ROUND() Best Practices:**
-
-1. **Always round financial data** - Never show $123.456789
-2. **Round percentages** - 33.33% not 33.333333%
-3. **Round averages** - 45.67 not 45.6666667
-4. **Use appropriate decimal places**:
-   - **Money**: 2 decimals ($123.45)
-   - **Percentages**: 1-2 decimals (33.3% or 33.33%)
-   - **Averages**: 2 decimals (45.67)
-   - **Statistical measures**: 2-3 decimals (1.234)
-
-### **EPAM Interview Tips for ROUND():**
-
-1. **Always round window function results** - Shows professionalism
-2. **Use appropriate decimal places** - Match business context
-3. **Explain your rounding choices** - "I'll round to 2 decimals for currency"
-4. **Consistent rounding** - Same decimal places throughout query
-
-### **Common ROUND() Mistakes:**
-
-#### **❌ Wrong:**
-```sql
--- Messy decimals
-SELECT AVG(salary) OVER (PARTITION BY department_id) as dept_avg FROM employees;
--- Result: 45678.6666667
-```
-
-#### **✅ Correct:**
-```sql
--- Clean, professional results
-SELECT ROUND(AVG(salary) OVER (PARTITION BY department_id), 2) as dept_avg FROM employees;
--- Result: 45678.67
-```
-
 ---
 
 ## 🔧 CTEs (Common Table Expressions) - The WITH Clause
 
 **Now that you understand window functions, let's learn how to use CTEs to make them more powerful and readable!**
 
-### **What are CTEs?**
+### What are CTEs?
 
 CTEs (Common Table Expressions) are **temporary named result sets** that exist only for the duration of a single query. Think of them as "temporary tables" that you create on-the-fly.
 
-### **Why Use CTEs with Window Functions?**
+### Why Use CTEs with Window Functions?
 
 1. **Break complex logic into steps** - Easier to read and debug
 2. **Reuse calculations** - Define once, use multiple times
 3. **EPAM loves them** - Shows advanced SQL thinking
 4. **Performance** - Often more efficient than subqueries
 
-### **Basic CTE Syntax:**
+### Basic CTE Syntax:
 
 ```sql
 WITH cte_name AS (
@@ -758,168 +543,85 @@ FROM cte_name
 WHERE additional_condition;
 ```
 
-### **CTE with Window Functions - Step by Step:**
+### CTE with Window Functions - Step by Step:
 
 **Problem**: "Find the top 3 highest-paid employees in each department"
 
-**Step 1: Create the CTE with Window Function**
 ```sql
 WITH ranked_employees AS (
     SELECT 
-        employee_id,
-        CONCAT(first_name, ' ', last_name) as employee_name,
-        department_id,
-        salary,
+        e.employee_id,
+        e.first_name || ' ' || e.last_name as employee_name,
+        e.department_id,
+        d.department_name,
+        e.salary,
         ROW_NUMBER() OVER (
-            PARTITION BY department_id 
-            ORDER BY salary DESC
+            PARTITION BY e.department_id 
+            ORDER BY e.salary DESC
         ) as dept_rank
-    FROM employees
+    FROM employees e
+    JOIN departments d ON e.department_id = d.department_id
 )
--- CTE is now available for use
-```
-
-**Step 2: Use the CTE in Main Query**
-```sql
-WITH ranked_employees AS (
-    SELECT 
-        employee_id,
-        CONCAT(first_name, ' ', last_name) as employee_name,
-        department_id,
-        salary,
-        ROW_NUMBER() OVER (
-            PARTITION BY department_id 
-            ORDER BY salary DESC
-        ) as dept_rank
-    FROM employees
-)
-SELECT employee_name, department_id, salary, dept_rank
+SELECT employee_name, department_name, salary, dept_rank
 FROM ranked_employees
 WHERE dept_rank <= 3
-ORDER BY department_id, dept_rank;
+ORDER BY department_name, dept_rank;
 ```
 
-### **Multiple CTEs (Chained CTEs):**
+---
 
+## 🎯 EPAM Interview Example - The Classic Problem
+
+**This is THE problem EPAM asks. Master this = you're ready.**
+
+### Problem Statement
+Calculate cumulative count and cumulative sum of orders per customer.
+
+**Given**: Our orders table with customer_id, order_date, total_amount
+
+**Expected Output**:
+```
+customer_id | order_date | total_amount | order_count_history | order_value_history
+------------|------------|--------------|-------------------|-------------------
+201         | 2024-01-01 | 150.00       | 1                 | 150.00
+201         | 2024-01-05 | 200.00       | 2                 | 350.00
+201         | 2024-01-10 | 100.00       | 3                 | 450.00
+202         | 2024-01-02 | 300.00       | 1                 | 300.00
+202         | 2024-01-08 | 250.00       | 2                 | 550.00
+```
+
+### Solution (Master This!)
 ```sql
--- You can have multiple CTEs
-WITH 
--- First CTE: Calculate rankings
-ranked_employees AS (
-    SELECT 
-        employee_id,
-        CONCAT(first_name, ' ', last_name) as employee_name,
-        department_id,
-        salary,
-        ROW_NUMBER() OVER (
-            PARTITION BY department_id 
-            ORDER BY salary DESC
-        ) as dept_rank
-    FROM employees
-),
--- Second CTE: Filter top 3
-top_performers AS (
-    SELECT *
-    FROM ranked_employees
-    WHERE dept_rank <= 3
-)
--- Main query: Add final formatting
 SELECT 
-    employee_name,
-    department_id,
-    salary,
-    dept_rank,
-    'Top ' || dept_rank || ' in Department' as performance_status
-FROM top_performers
-ORDER BY department_id, dept_rank;
+    o.customer_id,
+    c.first_name || ' ' || c.last_name as customer_name,
+    o.order_date,
+    o.total_amount,
+    -- Cumulative count: ROW_NUMBER resets for each customer
+    ROW_NUMBER() OVER (
+        PARTITION BY o.customer_id 
+        ORDER BY o.order_date
+    ) as order_count_history,
+    -- Cumulative sum: SUM with explicit frame
+    SUM(o.total_amount) OVER (
+        PARTITION BY o.customer_id 
+        ORDER BY o.order_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) as order_value_history
+FROM orders o
+JOIN customers c ON o.customer_id = c.customer_id
+WHERE o.customer_id <= 5
+ORDER BY o.customer_id, o.order_date;
 ```
 
-### **CTE vs Subquery Comparison:**
+### Step-by-Step Explanation
 
-**Subquery (Harder to Read):**
-```sql
-SELECT employee_name, department_id, salary
-FROM (
-    SELECT 
-        CONCAT(first_name, ' ', last_name) as employee_name,
-        department_id,
-        salary,
-        ROW_NUMBER() OVER (
-            PARTITION BY department_id 
-            ORDER BY salary DESC
-        ) as dept_rank
-    FROM employees
-) ranked_employees
-WHERE dept_rank <= 3;
-```
+1. **PARTITION BY o.customer_id**: Creates separate windows for each customer
+2. **ORDER BY o.order_date**: Orders within each window chronologically
+3. **ROW_NUMBER()**: Counts 1, 2, 3... for each customer's orders
+4. **SUM() with frame**: Adds all previous values up to current row
 
-**CTE (Easier to Read):**
-```sql
-WITH ranked_employees AS (
-    SELECT 
-        CONCAT(first_name, ' ', last_name) as employee_name,
-        department_id,
-        salary,
-        ROW_NUMBER() OVER (
-            PARTITION BY department_id 
-            ORDER BY salary DESC
-        ) as dept_rank
-    FROM employees
-)
-SELECT employee_name, department_id, salary
-FROM ranked_employees
-WHERE dept_rank <= 3;
-```
-
-### **CTE Best Practices:**
-
-1. **Use descriptive names** - `ranked_employees` not `cte1`
-2. **One concept per CTE** - Don't mix too many calculations
-3. **Order logically** - Most specific CTEs first
-4. **Test incrementally** - Run each CTE separately first
-
-### **Common CTE Patterns with Window Functions:**
-
-#### **Pattern 1: Ranking + Filtering**
-```sql
-WITH ranked_data AS (
-    SELECT *, ROW_NUMBER() OVER (PARTITION BY group ORDER BY value DESC) as rank
-    FROM table_name
-)
-SELECT * FROM ranked_data WHERE rank <= 3;
-```
-
-#### **Pattern 2: Calculations + Aggregations**
-```sql
-WITH calculated_data AS (
-    SELECT *, 
-           LAG(value) OVER (PARTITION BY group ORDER BY date) as prev_value,
-           value - LAG(value) OVER (PARTITION BY group ORDER BY date) as change
-    FROM table_name
-)
-SELECT group, AVG(change) as avg_change
-FROM calculated_data
-GROUP BY group;
-```
-
-#### **Pattern 3: Multiple Window Functions**
-```sql
-WITH multi_calculations AS (
-    SELECT *,
-           ROW_NUMBER() OVER (PARTITION BY group ORDER BY value DESC) as rank,
-           AVG(value) OVER (PARTITION BY group) as group_avg,
-           LAG(value) OVER (PARTITION BY group ORDER BY date) as prev_value
-    FROM table_name
-)
-SELECT * FROM multi_calculations WHERE rank <= 5;
-```
-
-### **EPAM Interview Tips for CTEs:**
-
-1. **Always explain your approach** - "I'll use a CTE to break this into steps"
-2. **Name CTEs meaningfully** - Shows you understand the data
-3. **Test each step** - "Let me verify this CTE works first"
-4. **Consider performance** - CTEs can be more efficient than subqueries
+**Practice this solution until you can write it in under 5 minutes!**
 
 ---
 
@@ -927,533 +629,83 @@ SELECT * FROM multi_calculations WHERE rank <= 5;
 
 **These patterns are EPAM's favorites for testing advanced SQL skills. Master these = guaranteed interview success!**
 
----
-
 ### 1. Top N per Group - The Classic EPAM Pattern ⭐⭐⭐
 
 **Business Scenario**: "Find the top 3 highest-performing employees in each department for our quarterly review."
 
-#### **The Problem:**
-- Need to rank employees within each department
-- Get only the top 3 from each department
-- Preserve all employee data for analysis
-
-#### **Step-by-Step Solution:**
-
-**Step 1: Create Rankings with Window Functions**
 ```sql
--- Use ROW_NUMBER() for unique rankings (no ties)
 WITH ranked_employees AS (
     SELECT 
-        CONCAT(first_name, ' ', last_name) as employee_name,
-        department_id,
-        salary,
+        e.first_name || ' ' || e.last_name as employee_name,
+        d.department_name,
+        e.salary,
         ROW_NUMBER() OVER (
-            PARTITION BY department_id 
-            ORDER BY salary DESC
+            PARTITION BY e.department_id 
+            ORDER BY e.salary DESC
         ) as dept_rank
-    FROM employees
+    FROM employees e
+    JOIN departments d ON e.department_id = d.department_id
 )
-SELECT employee_name, department_id, salary, dept_rank
+SELECT employee_name, department_name, salary, dept_rank
 FROM ranked_employees
 WHERE dept_rank <= 3
-ORDER BY department_id, dept_rank;
+ORDER BY department_name, dept_rank;
 ```
 
-**Step 2: Handle Ties with RANK() (Alternative)**
-```sql
--- Use RANK() if you want to handle ties differently
-WITH ranked_employees AS (
-    SELECT 
-        CONCAT(first_name, ' ', last_name) as employee_name,
-        department_id,
-        salary,
-        RANK() OVER (
-            PARTITION BY department_id 
-            ORDER BY salary DESC
-        ) as dept_rank
-    FROM employees
-)
-SELECT employee_name, department_id, salary, dept_rank
-FROM ranked_employees
-WHERE dept_rank <= 3
-ORDER BY department_id, dept_rank;
-```
-
-#### **Key Concepts:**
-- **PARTITION BY department_id**: Separate rankings per department
-- **ORDER BY salary DESC**: Highest salary = rank 1
-- **ROW_NUMBER() vs RANK()**: ROW_NUMBER() gives unique ranks, RANK() handles ties
-- **CTE Pattern**: Clean, readable query structure
-
-#### **Real-World Applications:**
-- **HR Analytics**: Top performers per department
-- **Sales Management**: Best sales reps per region
-- **Customer Analysis**: Highest-spending customers per segment
-- **Product Analysis**: Best-selling products per category
-
----
-
-### 2. Percentile Analysis - Statistical Insights ⭐⭐⭐
-
-**Business Scenario**: "We need to categorize our employees into performance quartiles for compensation planning."
-
-#### **The Problem:**
-- Divide employees into equal groups (quartiles, deciles, etc.)
-- Each group should have roughly the same number of employees
-- Need to understand distribution within departments
-
-#### **Comprehensive Solution:**
-
-**Basic Quartile Analysis:**
-```sql
--- Salary quartiles within departments
-SELECT 
-    CONCAT(first_name, ' ', last_name) as employee_name,
-    department_id,
-    salary,
-    NTILE(4) OVER (
-        PARTITION BY department_id 
-        ORDER BY salary DESC
-    ) as salary_quartile,
-    -- Add context
-    COUNT(*) OVER (PARTITION BY department_id) as dept_size,
-    AVG(salary) OVER (PARTITION BY department_id) as dept_avg_salary
-FROM employees
-ORDER BY department_id, salary_quartile, salary DESC;
-```
-
-**Advanced Percentile Analysis:**
-```sql
--- Comprehensive percentile analysis
-WITH percentile_analysis AS (
-    SELECT 
-        CONCAT(first_name, ' ', last_name) as employee_name,
-        department_id,
-        salary,
-        -- Quartiles
-        NTILE(4) OVER (PARTITION BY department_id ORDER BY salary DESC) as quartile,
-        -- Deciles
-        NTILE(10) OVER (PARTITION BY department_id ORDER BY salary DESC) as decile,
-        -- Percentiles
-        PERCENT_RANK() OVER (PARTITION BY department_id ORDER BY salary) * 100 as percentile,
-        -- Department statistics
-        AVG(salary) OVER (PARTITION BY department_id) as dept_avg,
-        MIN(salary) OVER (PARTITION BY department_id) as dept_min,
-        MAX(salary) OVER (PARTITION BY department_id) as dept_max
-    FROM employees
-)
-SELECT 
-    employee_name,
-    department_id,
-    salary,
-    quartile,
-    decile,
-    ROUND(percentile, 2) as percentile,
-    ROUND(salary - dept_avg, 2) as salary_vs_avg,
-    CASE 
-        WHEN quartile = 1 THEN 'Top 25%'
-        WHEN quartile = 2 THEN '25-50%'
-        WHEN quartile = 3 THEN '50-75%'
-        ELSE 'Bottom 25%'
-    END as performance_tier
-FROM percentile_analysis
-ORDER BY department_id, quartile, salary DESC;
-```
-
-#### **Key Concepts:**
-- **NTILE(n)**: Divides into n equal groups
-- **PERCENT_RANK()**: Returns percentile (0-1, multiply by 100 for percentage)
-- **PARTITION BY**: Separate analysis per department
-- **CASE statements**: Add business context
-
-#### **Real-World Applications:**
-- **Compensation Planning**: Salary quartiles for raises
-- **Performance Management**: Employee performance tiers
-- **Customer Segmentation**: Value-based customer groups
-- **Risk Assessment**: Credit score percentiles
-
----
-
-### 3. Gap Analysis - Finding Patterns in Time Series ⭐⭐⭐
+### 2. Customer Churn Analysis - Gap Analysis ⭐⭐⭐
 
 **Business Scenario**: "We need to identify customers who haven't ordered in over 30 days to trigger re-engagement campaigns."
 
-#### **The Problem:**
-- Find gaps in customer order sequences
-- Identify customers at risk of churning
-- Calculate time between orders
-
-#### **Comprehensive Solution:**
-
-**Basic Gap Analysis:**
 ```sql
--- Find gaps in order sequences
 WITH order_gaps AS (
     SELECT 
-        customer_id,
-        order_date,
-        LAG(order_date) OVER (
-            PARTITION BY customer_id 
-            ORDER BY order_date
+        o.customer_id,
+        c.first_name || ' ' || c.last_name as customer_name,
+        o.order_date,
+        LAG(o.order_date) OVER (
+            PARTITION BY o.customer_id 
+            ORDER BY o.order_date
         ) as prev_order_date,
-        JULIANDAY(order_date) - JULIANDAY(LAG(order_date) OVER (
-            PARTITION BY customer_id 
-            ORDER BY order_date
+        JULIANDAY(o.order_date) - JULIANDAY(LAG(o.order_date) OVER (
+            PARTITION BY o.customer_id 
+            ORDER BY o.order_date
         )) as days_since_last_order
-    FROM orders
+    FROM orders o
+    JOIN customers c ON o.customer_id = c.customer_id
 )
 SELECT 
     customer_id,
+    customer_name,
     order_date,
     prev_order_date,
-    days_since_last_order,
+    ROUND(days_since_last_order, 0) as days_since_last_order,
     CASE 
         WHEN days_since_last_order > 90 THEN 'High Risk'
         WHEN days_since_last_order > 30 THEN 'Medium Risk'
         ELSE 'Low Risk'
     END as churn_risk
 FROM order_gaps
-WHERE days_since_last_order > 30  -- Gaps > 30 days
-ORDER BY days_since_last_order DESC;
+WHERE days_since_last_order > 30
+ORDER BY days_since_last_order DESC
+LIMIT 20;
 ```
 
-**Advanced Gap Analysis with Customer Context:**
-```sql
--- Comprehensive gap analysis with customer insights
-WITH customer_order_analysis AS (
-    SELECT 
-        o.customer_id,
-        c.first_name,
-        c.last_name,
-        o.order_date,
-        o.total_amount,
-        LAG(o.order_date) OVER (
-            PARTITION BY o.customer_id 
-            ORDER BY o.order_date
-        ) as prev_order_date,
-        LAG(o.total_amount) OVER (
-            PARTITION BY o.customer_id 
-            ORDER BY o.order_date
-        ) as prev_order_amount,
-        JULIANDAY(o.order_date) - JULIANDAY(LAG(o.order_date) OVER (
-            PARTITION BY o.customer_id 
-            ORDER BY o.order_date
-        )) as days_since_last_order,
-        -- Customer statistics
-        COUNT(*) OVER (PARTITION BY o.customer_id) as total_orders,
-        AVG(o.total_amount) OVER (PARTITION BY o.customer_id) as avg_order_value,
-        SUM(o.total_amount) OVER (PARTITION BY o.customer_id) as lifetime_value
-    FROM orders o
-    JOIN customers c ON o.customer_id = c.customer_id
-),
-gap_analysis AS (
-    SELECT 
-        customer_id,
-        first_name,
-        last_name,
-        order_date,
-        total_amount,
-        prev_order_date,
-        prev_order_amount,
-        days_since_last_order,
-        total_orders,
-        avg_order_value,
-        lifetime_value,
-        -- Gap analysis
-        CASE 
-            WHEN days_since_last_order > 90 THEN 'High Risk'
-            WHEN days_since_last_order > 30 THEN 'Medium Risk'
-            ELSE 'Low Risk'
-        END as churn_risk,
-        -- Order value change
-        total_amount - prev_order_amount as order_value_change
-    FROM customer_order_analysis
-    WHERE days_since_last_order > 30
-)
-SELECT 
-    customer_id,
-    CONCAT(first_name, ' ', last_name) as customer_name,
-    order_date,
-    total_amount,
-    days_since_last_order,
-    churn_risk,
-    total_orders,
-    ROUND(avg_order_value, 2) as avg_order_value,
-    ROUND(lifetime_value, 2) as lifetime_value,
-    ROUND(order_value_change, 2) as order_value_change
-FROM gap_analysis
-ORDER BY days_since_last_order DESC, lifetime_value DESC;
-```
-
-#### **Key Concepts:**
-- **LAG() function**: Access previous row values
-- **JULIANDAY()**: Calculate date differences
-- **PARTITION BY**: Separate analysis per customer
-- **CASE statements**: Categorize risk levels
-- **CTEs**: Break complex queries into steps
-
-#### **Real-World Applications:**
-- **Customer Retention**: Identify at-risk customers
-- **Inventory Management**: Find gaps in product sales
-- **Employee Analysis**: Track attendance patterns
-- **Financial Analysis**: Identify payment gaps
-
----
-
-### 4. Performance Comparison - Benchmarking Analysis ⭐⭐⭐
+### 3. Performance Comparison - Benchmarking Analysis ⭐⭐⭐
 
 **Business Scenario**: "We need to compare each employee's performance against their department average for our annual review process."
 
-#### **The Problem:**
-- Compare individual performance to group averages
-- Calculate percentage differences
-- Identify over/under performers
-
-#### **Comprehensive Solution:**
-
-**Basic Performance Comparison:**
 ```sql
--- Compare each employee to department average
 SELECT 
-    CONCAT(first_name, ' ', last_name) as employee_name,
-    department_id,
-    salary,
-    AVG(salary) OVER (PARTITION BY department_id) as dept_avg,
-    salary - AVG(salary) OVER (PARTITION BY department_id) as salary_diff,
-    ROUND((salary * 100.0 / AVG(salary) OVER (PARTITION BY department_id)) - 100, 2) as percent_vs_dept_avg
-FROM employees
-ORDER BY department_id, salary DESC;
+    e.first_name || ' ' || e.last_name as employee_name,
+    d.department_name,
+    e.salary,
+    ROUND(AVG(e.salary) OVER (PARTITION BY e.department_id), 2) as dept_avg,
+    ROUND(e.salary - AVG(e.salary) OVER (PARTITION BY e.department_id), 2) as salary_diff,
+    ROUND((e.salary * 100.0 / AVG(e.salary) OVER (PARTITION BY e.department_id)) - 100, 2) as percent_vs_dept_avg
+FROM employees e
+JOIN departments d ON e.department_id = d.department_id
+ORDER BY e.department_id, e.salary DESC;
 ```
-
-**Advanced Performance Analysis:**
-```sql
--- Comprehensive performance analysis
-WITH department_stats AS (
-    SELECT 
-        department_id,
-        AVG(salary) as dept_avg,
-        MIN(salary) as dept_min,
-        MAX(salary) as dept_max,
-        COUNT(*) as dept_size,
-        STDDEV(salary) as dept_stddev
-    FROM employees
-    GROUP BY department_id
-),
-employee_analysis AS (
-    SELECT 
-        e.employee_id,
-        CONCAT(e.first_name, ' ', e.last_name) as employee_name,
-        e.department_id,
-        e.salary,
-        d.dept_avg,
-        d.dept_min,
-        d.dept_max,
-        d.dept_size,
-        d.dept_stddev,
-        -- Performance metrics
-        e.salary - d.dept_avg as salary_diff,
-        ROUND((e.salary * 100.0 / d.dept_avg) - 100, 2) as percent_vs_avg,
-        ROUND((e.salary - d.dept_min) * 100.0 / (d.dept_max - d.dept_min), 2) as percentile_in_dept,
-        -- Z-score (how many standard deviations from mean)
-        ROUND((e.salary - d.dept_avg) / d.dept_stddev, 2) as z_score,
-        -- Performance tier
-        CASE 
-            WHEN e.salary > d.dept_max * 0.9 THEN 'Top 10%'
-            WHEN e.salary > d.dept_avg * 1.1 THEN 'Above Average'
-            WHEN e.salary > d.dept_avg * 0.9 THEN 'Average'
-            ELSE 'Below Average'
-        END as performance_tier
-    FROM employees e
-    JOIN department_stats d ON e.department_id = d.department_id
-)
-SELECT 
-    employee_name,
-    department_id,
-    salary,
-    ROUND(dept_avg, 2) as dept_avg,
-    ROUND(salary_diff, 2) as salary_diff,
-    percent_vs_avg || '%' as percent_vs_avg,
-    percentile_in_dept || '%' as percentile_in_dept,
-    z_score,
-    performance_tier,
-    dept_size
-FROM employee_analysis
-ORDER BY department_id, salary DESC;
-```
-
-#### **Key Concepts:**
-- **Window functions with aggregates**: AVG() OVER (PARTITION BY)
-- **Mathematical calculations**: Percentage differences, z-scores
-- **CASE statements**: Performance categorization
-- **Statistical analysis**: Standard deviation, percentiles
-
-#### **Real-World Applications:**
-- **Performance Reviews**: Employee vs department benchmarks
-- **Sales Analysis**: Rep performance vs team average
-- **Financial Analysis**: Department budget vs actual spending
-- **Quality Control**: Product quality vs standards
-
----
-
-### 5. Trend Analysis - Time Series Intelligence ⭐⭐⭐
-
-**Business Scenario**: "We need to analyze month-over-month growth trends to identify seasonal patterns and forecast future performance."
-
-#### **The Problem:**
-- Calculate period-over-period changes
-- Identify growth trends
-- Handle seasonal variations
-
-#### **Comprehensive Solution:**
-
-**Basic Trend Analysis:**
-```sql
--- Month-over-month growth
-WITH monthly_sales AS (
-    SELECT 
-        DATE_TRUNC('month', order_date) as month,
-        SUM(total_amount) as monthly_total,
-        COUNT(*) as order_count
-    FROM orders
-    GROUP BY DATE_TRUNC('month', order_date)
-),
-trend_analysis AS (
-    SELECT 
-        month,
-        monthly_total,
-        order_count,
-        LAG(monthly_total, 1) OVER (ORDER BY month) as prev_month_total,
-        LAG(order_count, 1) OVER (ORDER BY month) as prev_month_orders,
-        monthly_total - LAG(monthly_total, 1) OVER (ORDER BY month) as revenue_growth,
-        ROUND((monthly_total * 100.0 / LAG(monthly_total, 1) OVER (ORDER BY month)) - 100, 2) as revenue_growth_percent,
-        order_count - LAG(order_count, 1) OVER (ORDER BY month) as order_growth,
-        ROUND((order_count * 100.0 / LAG(order_count, 1) OVER (ORDER BY month)) - 100, 2) as order_growth_percent
-    FROM monthly_sales
-)
-SELECT 
-    month,
-    monthly_total,
-    order_count,
-    prev_month_total,
-    revenue_growth,
-    revenue_growth_percent || '%' as revenue_growth_percent,
-    order_growth,
-    order_growth_percent || '%' as order_growth_percent,
-    CASE 
-        WHEN revenue_growth_percent > 10 THEN 'Strong Growth'
-        WHEN revenue_growth_percent > 0 THEN 'Positive Growth'
-        WHEN revenue_growth_percent > -10 THEN 'Slight Decline'
-        ELSE 'Significant Decline'
-    END as trend_category
-FROM trend_analysis
-ORDER BY month;
-```
-
-**Advanced Trend Analysis with Moving Averages:**
-```sql
--- Comprehensive trend analysis with moving averages
-WITH monthly_metrics AS (
-    SELECT 
-        DATE_TRUNC('month', order_date) as month,
-        SUM(total_amount) as revenue,
-        COUNT(*) as orders,
-        COUNT(DISTINCT customer_id) as unique_customers,
-        AVG(total_amount) as avg_order_value
-    FROM orders
-    GROUP BY DATE_TRUNC('month', order_date)
-),
-trend_analysis AS (
-    SELECT 
-        month,
-        revenue,
-        orders,
-        unique_customers,
-        avg_order_value,
-        -- Previous month values
-        LAG(revenue, 1) OVER (ORDER BY month) as prev_revenue,
-        LAG(orders, 1) OVER (ORDER BY month) as prev_orders,
-        LAG(unique_customers, 1) OVER (ORDER BY month) as prev_customers,
-        LAG(avg_order_value, 1) OVER (ORDER BY month) as prev_avg_order_value,
-        -- 3-month moving averages
-        AVG(revenue) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) as revenue_3m_avg,
-        AVG(orders) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) as orders_3m_avg,
-        AVG(unique_customers) OVER (ORDER BY month ROWS BETWEEN 2 PRECEDING AND CURRENT ROW) as customers_3m_avg,
-        -- Growth calculations
-        revenue - LAG(revenue, 1) OVER (ORDER BY month) as revenue_growth,
-        ROUND((revenue * 100.0 / LAG(revenue, 1) OVER (ORDER BY month)) - 100, 2) as revenue_growth_percent,
-        orders - LAG(orders, 1) OVER (ORDER BY month) as order_growth,
-        ROUND((orders * 100.0 / LAG(orders, 1) OVER (ORDER BY month)) - 100, 2) as order_growth_percent
-    FROM monthly_metrics
-)
-SELECT 
-    month,
-    ROUND(revenue, 2) as revenue,
-    ROUND(prev_revenue, 2) as prev_revenue,
-    ROUND(revenue_growth, 2) as revenue_growth,
-    revenue_growth_percent || '%' as revenue_growth_percent,
-    ROUND(revenue_3m_avg, 2) as revenue_3m_avg,
-    orders,
-    prev_orders,
-    order_growth,
-    order_growth_percent || '%' as order_growth_percent,
-    ROUND(orders_3m_avg, 2) as orders_3m_avg,
-    ROUND(avg_order_value, 2) as avg_order_value,
-    ROUND(prev_avg_order_value, 2) as prev_avg_order_value,
-    -- Trend analysis
-    CASE 
-        WHEN revenue_growth_percent > 15 THEN 'Exceptional Growth'
-        WHEN revenue_growth_percent > 5 THEN 'Strong Growth'
-        WHEN revenue_growth_percent > 0 THEN 'Positive Growth'
-        WHEN revenue_growth_percent > -5 THEN 'Slight Decline'
-        ELSE 'Significant Decline'
-    END as revenue_trend,
-    CASE 
-        WHEN revenue > revenue_3m_avg * 1.1 THEN 'Above Trend'
-        WHEN revenue > revenue_3m_avg * 0.9 THEN 'On Trend'
-        ELSE 'Below Trend'
-    END as vs_trend
-FROM trend_analysis
-ORDER BY month;
-```
-
-#### **Key Concepts:**
-- **LAG() function**: Access previous period values
-- **Moving averages**: AVG() OVER (ROWS BETWEEN)
-- **Growth calculations**: Period-over-period changes
-- **Trend categorization**: CASE statements for business insights
-
-#### **Real-World Applications:**
-- **Business Intelligence**: Revenue trend analysis
-- **Financial Planning**: Budget vs actual trends
-- **Marketing Analysis**: Campaign performance over time
-- **Operations**: Efficiency trend monitoring
-
----
-
-## 🎯 **EPAM Interview Success Tips for Advanced Patterns**
-
-### **1. Always Start with Business Context**
-- "This is a top N per group problem for HR analytics"
-- "We need to find customer churn patterns using gap analysis"
-- "Let's analyze revenue trends with moving averages"
-
-### **2. Break Complex Problems into Steps**
-- Use CTEs to break down complex logic
-- Start with basic window functions, then add complexity
-- Test each step before moving to the next
-
-### **3. Consider Performance Implications**
-- Use appropriate frame sizes
-- Index your PARTITION BY and ORDER BY columns
-- Consider alternatives for very large datasets
-
-### **4. Add Business Value**
-- Include meaningful column names
-- Add context with CASE statements
-- Calculate relevant business metrics
-
-**Master these patterns, and you'll be ready for any EPAM window function challenge!** 🚀
 
 ---
 
@@ -1471,129 +723,39 @@ SUM(amount) OVER (
 )
 ```
 
-### 2. Using Wrong Frame Default
+### 2. LAST_VALUE() Without Frame Specification ⚠️ **CRITICAL**
 ```sql
--- ⚠️ DANGEROUS: Default might not be what you expect
-SUM(amount) OVER (ORDER BY date)
--- Default: RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
--- This handles ties differently than ROWS!
+-- ✗ WRONG: LAST_VALUE() without frame only looks at current row
+SELECT 
+    o.customer_id,
+    o.order_date,
+    o.total_amount,
+    LAST_VALUE(o.total_amount) OVER (
+        PARTITION BY o.customer_id 
+        ORDER BY o.order_date
+    ) as last_value  -- This is WRONG! Shows current row, not last row
+FROM orders o;
 
--- ✓ EXPLICIT: Be clear about what you want
-SUM(amount) OVER (
-    ORDER BY date 
-    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-)
+-- ✓ CORRECT: LAST_VALUE() needs frame to see entire partition
+SELECT 
+    o.customer_id,
+    o.order_date,
+    o.total_amount,
+    LAST_VALUE(o.total_amount) OVER (
+        PARTITION BY o.customer_id 
+        ORDER BY o.order_date
+        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
+    ) as last_value  -- This shows actual last row in partition
+FROM orders o;
 ```
 
-### 3. Confusing RANK vs DENSE_RANK
-```sql
--- Use RANK for sports-style rankings (with gaps)
-SELECT *, RANK() OVER (ORDER BY score DESC) as position FROM players;
-
--- Use DENSE_RANK for consecutive numbering
-SELECT *, DENSE_RANK() OVER (ORDER BY score DESC) as position FROM players;
-```
-
-### 4. Performance Issues with Large Windows
-```sql
--- ⚠️ SLOW: Large unbounded windows
-SUM(amount) OVER (ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
-
--- ✓ FASTER: Limited windows when possible
-SUM(amount) OVER (ORDER BY date ROWS BETWEEN 29 PRECEDING AND CURRENT ROW)
-```
-
-### 5. Missing PARTITION BY When Needed
+### 3. Missing PARTITION BY When Needed
 ```sql
 -- ✗ WRONG: Global ranking when you want per-group
 SELECT *, RANK() OVER (ORDER BY sales DESC) as rank FROM sales_by_region;
 
 -- ✓ CORRECT: Separate ranking per region
 SELECT *, RANK() OVER (PARTITION BY region ORDER BY sales DESC) as region_rank FROM sales_by_region;
-```
-
-### 6. LAST_VALUE() Without Frame Specification ⚠️ **CRITICAL**
-```sql
--- ✗ WRONG: LAST_VALUE() without frame only looks at current row
-SELECT 
-    customer_id,
-    order_date,
-    order_amount,
-    LAST_VALUE(order_amount) OVER (
-        PARTITION BY customer_id 
-        ORDER BY order_date
-    ) as last_value  -- This is WRONG! Shows current row, not last row
-FROM orders;
-
--- ✓ CORRECT: LAST_VALUE() needs frame to see entire partition
-SELECT 
-    customer_id,
-    order_date,
-    order_amount,
-    LAST_VALUE(order_amount) OVER (
-        PARTITION BY customer_id 
-        ORDER BY order_date
-        ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING
-    ) as last_value  -- This shows actual last row in partition
-FROM orders;
-```
-
-**Why This Matters:**
-- **Without frame**: LAST_VALUE() = current row's value
-- **With frame**: LAST_VALUE() = last row's value in entire partition
-- **This is a VERY common mistake** in interviews!
-
----
-
-## 🚀 Performance Optimization Tips
-
-### 1. Use Appropriate Frame Sizes
-```sql
--- Good: Limited window
-AVG(amount) OVER (ORDER BY date ROWS BETWEEN 6 PRECEDING AND CURRENT ROW)
-
--- Avoid: Unbounded windows on large datasets
-AVG(amount) OVER (ORDER BY date ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
-```
-
-### 2. Index Your ORDER BY Columns
-```sql
--- Create index for better window function performance
-CREATE INDEX idx_orders_date ON orders(order_date);
-CREATE INDEX idx_orders_customer_date ON orders(customer_id, order_date);
-```
-
-### 3. Consider Alternatives for Simple Cases
-```sql
--- For simple running totals, sometimes a self-join is faster
-SELECT 
-    o1.order_date,
-    o1.amount,
-    SUM(o2.amount) as running_total
-FROM orders o1
-JOIN orders o2 ON o2.order_date <= o1.order_date
-GROUP BY o1.order_date, o1.amount
-ORDER BY o1.order_date;
-```
-
-### 4. Use CTEs for Complex Window Functions
-```sql
--- Break complex queries into steps
-WITH customer_totals AS (
-    SELECT 
-        customer_id,
-        SUM(order_amount) as total_spent
-    FROM orders
-    GROUP BY customer_id
-),
-customer_ranked AS (
-    SELECT 
-        customer_id,
-        total_spent,
-        RANK() OVER (ORDER BY total_spent DESC) as spending_rank
-    FROM customer_totals
-)
-SELECT * FROM customer_ranked WHERE spending_rank <= 10;
 ```
 
 ---
@@ -1612,15 +774,15 @@ When solving window function problems:
 ### 2. Start Simple, Then Add Complexity
 ```sql
 -- Step 1: Basic window function
-SELECT *, SUM(amount) OVER (ORDER BY date) as running_total FROM orders;
+SELECT *, SUM(total_amount) OVER (ORDER BY order_date) as running_total FROM orders;
 
 -- Step 2: Add partitioning
-SELECT *, SUM(amount) OVER (PARTITION BY customer ORDER BY date) as running_total FROM orders;
+SELECT *, SUM(total_amount) OVER (PARTITION BY customer_id ORDER BY order_date) as running_total FROM orders;
 
 -- Step 3: Add explicit frame
-SELECT *, SUM(amount) OVER (
-    PARTITION BY customer 
-    ORDER BY date 
+SELECT *, SUM(total_amount) OVER (
+    PARTITION BY customer_id 
+    ORDER BY order_date 
     ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
 ) as running_total FROM orders;
 ```
@@ -1630,44 +792,19 @@ Always test your solution with the provided sample data:
 ```sql
 -- Test your solution
 SELECT 
-    cid,
-    order_id,
-    order_date,
-    order_value,
-    ROW_NUMBER() OVER (PARTITION BY cid ORDER BY order_date) as count_history,
-    SUM(order_value) OVER (
-        PARTITION BY cid 
-        ORDER BY order_date
+    o.customer_id,
+    o.order_date,
+    o.total_amount,
+    ROW_NUMBER() OVER (PARTITION BY o.customer_id ORDER BY o.order_date) as count_history,
+    SUM(o.total_amount) OVER (
+        PARTITION BY o.customer_id 
+        ORDER BY o.order_date
         ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
     ) as value_history
-FROM orders
-ORDER BY cid, order_date;
+FROM orders o
+WHERE o.customer_id <= 3
+ORDER BY o.customer_id, o.order_date;
 ```
-
-### 4. Know the EPAM Patterns
-- **Running totals**: SUM() with OVER()
-- **Sequential numbering**: ROW_NUMBER()
-- **Ranking within groups**: RANK() with PARTITION BY
-- **Period comparisons**: LAG()/LEAD()
-- **Moving averages**: AVG() with ROWS BETWEEN
-
----
-
-## 🏋️ Practice Exercises
-
-**See**: `01_SQL/exercises/02_Window_Functions_Exercises.md`
-
-**Master these patterns**:
-1. ✅ Running totals (EPAM favorite!)
-2. ✅ Moving averages
-3. ✅ Ranking within groups
-4. ✅ Period-over-period comparisons
-5. ✅ Top N per group
-6. ✅ Gap analysis
-7. ✅ Percentile calculations
-8. ✅ Performance comparisons
-
-**Target Time**: Solve cumulative problems in < 10 minutes
 
 ---
 
