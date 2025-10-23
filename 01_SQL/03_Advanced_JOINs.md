@@ -8,12 +8,12 @@ By the end of this module, you will be able to:
 - **Choose the right JOIN** for each business requirement
 - **Handle data reconciliation** and missing record detection
 - **Optimize JOIN performance** for large datasets
-- **Implement star schema patterns** for data warehouses
+- **Implement real-world patterns** using our epam_practice.db database
 - **Debug JOIN issues** and validate results
 
 ---
 
-## 🔥 Why Advanced JOINs Matter for Data Engineering
+## 🔥 Why Advanced JOINs Matter for EPAM
 
 JOINs are the **backbone of data engineering**. Here's why:
 
@@ -28,7 +28,9 @@ JOINs are the **backbone of data engineering**. Here's why:
 
 ---
 
-## 📚 JOIN Types - Complete Reference
+## 📚 What Are JOINs?
+
+JOINs combine rows from two or more tables based on related columns. Think of them as "connecting" related data across tables.
 
 ### Visual JOIN Types Overview
 
@@ -41,9 +43,57 @@ CROSS JOIN:     A × B    (Cartesian product - every A with every B)
 SELF JOIN:      A ⋈ A    (Table joined with itself)
 ```
 
+### Key Difference from Simple SELECT
+
+```sql
+-- Simple SELECT: Only one table
+SELECT customer_id, first_name, last_name FROM customers;
+
+-- JOIN: Combine data from multiple tables
+SELECT 
+    c.customer_id,
+    c.first_name || ' ' || c.last_name as customer_name,
+    o.order_date,
+    o.total_amount
+FROM customers c
+INNER JOIN orders o ON c.customer_id = o.customer_id;
+```
+
+**Key Insight**: JOINs let you **combine related data** from different tables into a single result set.
+
 ---
 
-## 🔥 Core JOIN Types - Deep Dive
+## 🗄️ Our Database Schema (epam_practice.db)
+
+**Before diving into JOINs, let's understand our database structure:**
+
+### **Key Tables for JOINs:**
+- **customers**: customer_id, first_name, last_name, city, customer_segment, total_spent, is_vip
+- **orders**: order_id, customer_id, order_date, total_amount, order_status
+- **order_items**: order_item_id, order_id, product_id, quantity, total_price
+- **products**: product_id, product_name, category_id, price
+- **categories**: category_id, category_name, parent_category_id
+- **employees**: employee_id, first_name, last_name, department_id, salary, manager_id, job_title
+- **departments**: department_id, department_name, manager_id, budget
+- **sales**: sale_id, rep_id, territory_id, sale_date, total_amount, commission_earned
+- **sales_reps**: rep_id, rep_name, territory_id, commission_rate, quota
+- **sales_territories**: territory_id, territory_name, region, target_revenue
+
+### **Quick Schema Check:**
+```sql
+-- Verify our database structure
+SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;
+
+-- Check record counts
+SELECT 'customers' as table_name, COUNT(*) as record_count FROM customers
+UNION ALL SELECT 'orders', COUNT(*) FROM orders
+UNION ALL SELECT 'products', COUNT(*) FROM products
+UNION ALL SELECT 'employees', COUNT(*) FROM employees;
+```
+
+---
+
+## 🔥 Core JOIN Types - Complete Guide
 
 ### 1. INNER JOIN - Exact Matches Only
 
@@ -53,31 +103,32 @@ SELF JOIN:      A ⋈ A    (Table joined with itself)
 -- Basic INNER JOIN
 SELECT 
     c.customer_id,
-    c.customer_name,
+    c.first_name || ' ' || c.last_name as customer_name,
     o.order_date,
-    o.order_amount
+    o.total_amount
 FROM customers c
-INNER JOIN orders o ON c.customer_id = o.customer_id;
+INNER JOIN orders o ON c.customer_id = o.customer_id
+ORDER BY o.order_date
+LIMIT 10;
 ```
 
-**Real-World Example**: Data Warehouse Star Schema
+**Real-World Example**: Customer Order Analysis
 ```sql
--- Fact table joined with dimension tables
+-- Find customers who have made orders with detailed information
 SELECT 
-    f.order_id,
-    f.order_date,
-    c.customer_name,
+    c.customer_id,
+    c.first_name || ' ' || c.last_name as customer_name,
     c.customer_segment,
-    p.product_name,
-    p.product_category,
-    f.quantity,
-    f.unit_price,
-    f.total_amount
-FROM fact_orders f
-INNER JOIN dim_customers c ON f.customer_id = c.customer_id
-INNER JOIN dim_products p ON f.product_id = p.product_id
-INNER JOIN dim_dates d ON f.order_date_id = d.date_id
-WHERE f.order_date >= '2024-01-01';
+    COUNT(o.order_id) as total_orders,
+    SUM(o.total_amount) as total_spent,
+    AVG(o.total_amount) as avg_order_value,
+    MIN(o.order_date) as first_order_date,
+    MAX(o.order_date) as last_order_date
+FROM customers c
+INNER JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id, c.first_name, c.last_name, c.customer_segment
+ORDER BY total_spent DESC
+LIMIT 10;
 ```
 
 **When to Use INNER JOIN**:
@@ -95,11 +146,13 @@ WHERE f.order_date >= '2024-01-01';
 -- Basic LEFT JOIN
 SELECT 
     c.customer_id,
-    c.customer_name,
+    c.first_name || ' ' || c.last_name as customer_name,
     o.order_date,
-    o.order_amount
+    o.total_amount
 FROM customers c
-LEFT JOIN orders o ON c.customer_id = o.customer_id;
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+ORDER BY c.customer_id, o.order_date
+LIMIT 10;
 ```
 
 **Real-World Example**: Customer Analysis with Optional Orders
@@ -107,11 +160,11 @@ LEFT JOIN orders o ON c.customer_id = o.customer_id;
 -- Find all customers and their order history (including customers with no orders)
 SELECT 
     c.customer_id,
-    c.customer_name,
-    c.registration_date,
+    c.first_name || ' ' || c.last_name as customer_name,
+    c.customer_segment,
     COUNT(o.order_id) as total_orders,
-    COALESCE(SUM(o.order_amount), 0) as total_spent,
-    COALESCE(AVG(o.order_amount), 0) as avg_order_value,
+    COALESCE(SUM(o.total_amount), 0) as total_spent,
+    COALESCE(AVG(o.total_amount), 0) as avg_order_value,
     CASE 
         WHEN COUNT(o.order_id) = 0 THEN 'No Orders'
         WHEN COUNT(o.order_id) = 1 THEN 'Single Order'
@@ -119,28 +172,31 @@ SELECT
     END as customer_status
 FROM customers c
 LEFT JOIN orders o ON c.customer_id = o.customer_id
-GROUP BY c.customer_id, c.customer_name, c.registration_date
-ORDER BY total_spent DESC;
+GROUP BY c.customer_id, c.first_name, c.last_name, c.customer_segment
+ORDER BY total_spent DESC
+LIMIT 10;
 ```
 
 **Real-World Example**: Data Reconciliation
 ```sql
--- Find records in source system A that don't exist in system B
+-- Find customers who haven't made any orders
 SELECT 
-    'Missing in System B' as issue_type,
-    a.customer_id,
-    a.customer_name,
-    a.last_updated
-FROM system_a_customers a
-LEFT JOIN system_b_customers b ON a.customer_id = b.customer_id
-WHERE b.customer_id IS NULL;
+    'Customers with no orders' as analysis_type,
+    c.customer_id,
+    c.first_name || ' ' || c.last_name as customer_name,
+    c.customer_segment,
+    c.total_spent
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+WHERE o.customer_id IS NULL
+ORDER BY c.customer_id
+LIMIT 10;
 ```
 
 **When to Use LEFT JOIN**:
-- Preserve all records from the main table
-- Find missing relationships
-- Data reconciliation and validation
-- Optional relationships (customers without orders)
+- You need all records from the left table
+- You want to include records with no matches
+- Data reconciliation and missing record detection
 
 ---
 
@@ -152,196 +208,222 @@ WHERE b.customer_id IS NULL;
 -- Basic RIGHT JOIN
 SELECT 
     c.customer_id,
-    c.customer_name,
+    c.first_name || ' ' || c.last_name as customer_name,
     o.order_date,
-    o.order_amount
+    o.total_amount
 FROM customers c
-RIGHT JOIN orders o ON c.customer_id = o.customer_id;
+RIGHT JOIN orders o ON c.customer_id = o.customer_id
+ORDER BY o.order_date
+LIMIT 10;
 ```
 
-**Real-World Example**: Order Analysis with Missing Customer Data
+**Real-World Example**: Order Analysis with Customer Details
 ```sql
--- Find all orders, including those with missing customer information
+-- Find all orders and their customer information (including orphaned orders)
 SELECT 
     o.order_id,
     o.order_date,
-    o.order_amount,
-    COALESCE(c.customer_name, 'Unknown Customer') as customer_name,
-    CASE 
-        WHEN c.customer_id IS NULL THEN 'Data Quality Issue'
-        ELSE 'Valid Customer'
-    END as data_status
+    o.total_amount,
+    o.order_status,
+    COALESCE(c.first_name || ' ' || c.last_name, 'Unknown Customer') as customer_name,
+    COALESCE(c.customer_segment, 'Unknown Segment') as customer_segment
 FROM customers c
 RIGHT JOIN orders o ON c.customer_id = o.customer_id
-ORDER BY o.order_date DESC;
+ORDER BY o.order_date DESC
+LIMIT 10;
 ```
 
 **When to Use RIGHT JOIN**:
-- Preserve all records from the secondary table
-- Find orphaned records (orders without customers)
-- Data quality analysis
-- **Note**: LEFT JOIN is more common and readable
+- You need all records from the right table
+- You want to include orphaned records
+- Less common than LEFT JOIN (LEFT JOIN is preferred)
 
 ---
 
-### 4. FULL OUTER JOIN - Keep Everything
+### 4. FULL OUTER JOIN - All Records
 
-**Purpose**: Returns all records when there's a match in either table
+**Purpose**: Returns all records from both tables, with NULLs for non-matching records
 
 ```sql
--- Basic FULL OUTER JOIN
+-- Basic FULL OUTER JOIN (SQLite doesn't support FULL OUTER JOIN directly)
+-- We simulate it with UNION of LEFT and RIGHT JOINs
 SELECT 
-    COALESCE(c.customer_id, o.customer_id) as customer_id,
-    c.customer_name,
+    c.customer_id,
+    c.first_name || ' ' || c.last_name as customer_name,
     o.order_date,
-    o.order_amount
+    o.total_amount
 FROM customers c
-FULL OUTER JOIN orders o ON c.customer_id = o.customer_id;
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+
+UNION ALL
+
+SELECT 
+    c.customer_id,
+    c.first_name || ' ' || c.last_name as customer_name,
+    o.order_date,
+    o.total_amount
+FROM customers c
+RIGHT JOIN orders o ON c.customer_id = o.customer_id
+WHERE c.customer_id IS NULL
+ORDER BY customer_id, order_date
+LIMIT 10;
 ```
 
 **Real-World Example**: Complete Data Reconciliation
 ```sql
--- Comprehensive data reconciliation between two systems
-SELECT 
-    COALESCE(a.customer_id, b.customer_id) as customer_id,
-    a.customer_name as system_a_name,
-    b.customer_name as system_b_name,
-    a.email as system_a_email,
-    b.email as system_b_email,
-    CASE 
-        WHEN a.customer_id IS NULL THEN 'Only in System B'
-        WHEN b.customer_id IS NULL THEN 'Only in System A'
-        WHEN a.customer_name != b.customer_name THEN 'Name Mismatch'
-        WHEN a.email != b.email THEN 'Email Mismatch'
-        ELSE 'Perfect Match'
-    END as reconciliation_status
-FROM system_a_customers a
-FULL OUTER JOIN system_b_customers b ON a.customer_id = b.customer_id
-ORDER BY reconciliation_status, customer_id;
+-- Find all customers and orders (including orphaned records)
+WITH customer_orders AS (
+    SELECT 
+        c.customer_id,
+        c.first_name || ' ' || c.last_name as customer_name,
+        c.customer_segment,
+        o.order_id,
+        o.order_date,
+        o.total_amount,
+        'Customer with Orders' as record_type
+    FROM customers c
+    INNER JOIN orders o ON c.customer_id = o.customer_id
+    
+    UNION ALL
+    
+    SELECT 
+        c.customer_id,
+        c.first_name || ' ' || c.last_name as customer_name,
+        c.customer_segment,
+        NULL as order_id,
+        NULL as order_date,
+        NULL as total_amount,
+        'Customer with No Orders' as record_type
+    FROM customers c
+    LEFT JOIN orders o ON c.customer_id = o.customer_id
+    WHERE o.customer_id IS NULL
+    
+    UNION ALL
+    
+    SELECT 
+        NULL as customer_id,
+        'Unknown Customer' as customer_name,
+        NULL as customer_segment,
+        o.order_id,
+        o.order_date,
+        o.total_amount,
+        'Orphaned Order' as record_type
+    FROM customers c
+    RIGHT JOIN orders o ON c.customer_id = o.customer_id
+    WHERE c.customer_id IS NULL
+)
+SELECT * FROM customer_orders
+ORDER BY customer_id, order_date
+LIMIT 20;
 ```
 
 **When to Use FULL OUTER JOIN**:
 - Complete data reconciliation
-- Finding all discrepancies between systems
-- Comprehensive data quality analysis
-- When you need to see everything from both tables
+- Finding all records from both tables
+- Data quality analysis
 
 ---
 
 ### 5. CROSS JOIN - Cartesian Product
 
-**Purpose**: Returns the Cartesian product of both tables (every row from A paired with every row from B)
+**Purpose**: Returns the Cartesian product of two tables (every row from first table with every row from second table)
 
 ```sql
--- Basic CROSS JOIN
+-- Basic CROSS JOIN (use with caution!)
 SELECT 
-    p.product_name,
-    r.region_name,
-    'Available' as status
-FROM products p
-CROSS JOIN regions r;
+    c.customer_id,
+    c.first_name || ' ' || c.last_name as customer_name,
+    p.product_id,
+    p.product_name
+FROM customers c
+CROSS JOIN products p
+LIMIT 10;  -- Always use LIMIT with CROSS JOIN!
 ```
 
-**Real-World Example**: Data Warehouse Dimension Combination
+**Real-World Example**: Product Recommendations
 ```sql
--- Create all possible combinations for a reporting matrix
+-- Generate customer-product combinations for analysis
 SELECT 
-    p.product_name,
-    p.product_category,
-    r.region_name,
+    c.customer_id,
+    c.first_name || ' ' || c.last_name as customer_name,
     c.customer_segment,
-    COALESCE(s.sales_amount, 0) as sales_amount,
-    CASE 
-        WHEN s.sales_amount IS NULL THEN 'No Sales'
-        ELSE 'Has Sales'
-    END as sales_status
-FROM products p
-CROSS JOIN regions r
-CROSS JOIN customer_segments c
-LEFT JOIN sales_fact s ON s.product_id = p.product_id 
-                      AND s.region_id = r.region_id 
-                      AND s.customer_segment_id = c.segment_id
-WHERE p.is_active = 1
-ORDER BY p.product_name, r.region_name, c.customer_segment;
+    p.product_id,
+    p.product_name,
+    p.price,
+    cat.category_name
+FROM customers c
+CROSS JOIN products p
+INNER JOIN categories cat ON p.category_id = cat.category_id
+WHERE c.customer_segment = 'Premium'  -- Filter to reduce results
+LIMIT 20;
 ```
 
 **When to Use CROSS JOIN**:
-- Creating all possible combinations
-- Data warehouse dimension tables
-- Generating test data
-- **Warning**: Can create very large result sets!
+- Generating all possible combinations
+- Data analysis and reporting
+- **Use with caution** - can create very large result sets
 
 ---
 
-### 6. SELF JOIN - Table Joins Itself
+### 6. SELF JOIN - Table Joined with Itself
 
-**Purpose**: Join a table with itself to compare records within the same table
+**Purpose**: Join a table with itself to find relationships within the same table
 
 ```sql
--- Basic SELF JOIN
+-- Basic SELF JOIN - Employee hierarchy
 SELECT 
     e1.employee_id,
-    e1.employee_name,
-    e1.manager_id,
-    e2.employee_name as manager_name
+    e1.first_name || ' ' || e1.last_name as employee_name,
+    e1.job_title,
+    d1.department_name,
+    e2.first_name || ' ' || e2.last_name as manager_name,
+    e2.job_title as manager_title
 FROM employees e1
-LEFT JOIN employees e2 ON e1.manager_id = e2.employee_id;
+LEFT JOIN employees e2 ON e1.manager_id = e2.employee_id
+LEFT JOIN departments d1 ON e1.department_id = d1.department_id
+ORDER BY e1.department_id, e1.employee_id;
 ```
 
-**Real-World Example**: Hierarchical Data Analysis
+**Real-World Example**: Employee Hierarchy Analysis
 ```sql
--- Employee hierarchy with multiple levels
-WITH RECURSIVE employee_hierarchy AS (
-    -- Base case: top-level managers
-    SELECT 
-        employee_id,
-        employee_name,
-        manager_id,
-        0 as level,
-        employee_name as hierarchy_path
-    FROM employees
-    WHERE manager_id IS NULL
-    
-    UNION ALL
-    
-    -- Recursive case: subordinates
-    SELECT 
-        e.employee_id,
-        e.employee_name,
-        e.manager_id,
-        eh.level + 1,
-        eh.hierarchy_path || ' -> ' || e.employee_name
-    FROM employees e
-    INNER JOIN employee_hierarchy eh ON e.manager_id = eh.employee_id
-)
+-- Complete employee hierarchy with department information
 SELECT 
-    employee_id,
-    employee_name,
-    level,
-    hierarchy_path
-FROM employee_hierarchy
-ORDER BY level, employee_name;
+    e1.employee_id,
+    e1.first_name || ' ' || e1.last_name as employee_name,
+    e1.job_title,
+    d.department_name,
+    e1.salary,
+    e2.first_name || ' ' || e2.last_name as manager_name,
+    e2.job_title as manager_title,
+    e2.salary as manager_salary,
+    CASE 
+        WHEN e1.manager_id IS NULL THEN 'Top Level'
+        WHEN e2.manager_id IS NULL THEN 'Middle Management'
+        ELSE 'Regular Employee'
+    END as hierarchy_level
+FROM employees e1
+LEFT JOIN employees e2 ON e1.manager_id = e2.employee_id
+LEFT JOIN departments d ON e1.department_id = d.department_id
+ORDER BY d.department_name, e1.salary DESC;
 ```
 
-**Real-World Example**: Find Duplicate Records
+**Real-World Example**: Duplicate Detection
 ```sql
 -- Find potential duplicate customers
 SELECT 
     c1.customer_id as customer_1_id,
-    c1.customer_name as customer_1_name,
-    c1.email as customer_1_email,
+    c1.first_name || ' ' || c1.last_name as customer_1_name,
+    c1.city as customer_1_city,
     c2.customer_id as customer_2_id,
-    c2.customer_name as customer_2_name,
-    c2.email as customer_2_email,
-    CASE 
-        WHEN c1.email = c2.email THEN 'Same Email'
-        WHEN LOWER(c1.customer_name) = LOWER(c2.customer_name) THEN 'Same Name'
-        ELSE 'Potential Duplicate'
-    END as duplicate_reason
+    c2.first_name || ' ' || c2.last_name as customer_2_name,
+    c2.city as customer_2_city,
+    'Potential Duplicate' as issue_type
 FROM customers c1
 INNER JOIN customers c2 ON c1.customer_id < c2.customer_id
-WHERE c1.email = c2.email 
-   OR LOWER(c1.customer_name) = LOWER(c2.customer_name);
+WHERE LOWER(c1.first_name) = LOWER(c2.first_name) 
+   AND LOWER(c1.last_name) = LOWER(c2.last_name)
+   AND c1.city = c2.city
+ORDER BY c1.customer_id;
 ```
 
 **When to Use SELF JOIN**:
@@ -352,414 +434,275 @@ WHERE c1.email = c2.email
 
 ---
 
-## 🎯 Complex Multi-Table JOINs - Data Engineering Scenarios
+## 🎯 Multiple JOINs - Complex Scenarios
 
-### Scenario 1: Data Warehouse Star Schema
+### Scenario 1: Complete Order Analysis
 
 ```sql
--- Complete star schema query with multiple dimensions
+-- Multi-table JOIN for comprehensive order analysis
 SELECT 
-    -- Fact table measures
-    f.order_id,
-    f.order_date,
-    f.quantity,
-    f.unit_price,
-    f.total_amount,
-    f.discount_amount,
-    
-    -- Customer dimension
-    c.customer_name,
+    o.order_id,
+    o.order_date,
+    o.total_amount,
+    o.order_status,
+    c.first_name || ' ' || c.last_name as customer_name,
     c.customer_segment,
-    c.region,
-    c.registration_date,
-    
-    -- Product dimension
     p.product_name,
-    p.product_category,
-    p.brand,
-    p.unit_cost,
-    
-    -- Date dimension
-    d.year,
-    d.quarter,
-    d.month_name,
-    d.day_of_week,
-    
-    -- Calculated fields
-    f.total_amount - f.discount_amount as net_amount,
-    f.unit_price - p.unit_cost as profit_per_unit,
-    (f.unit_price - p.unit_cost) * f.quantity as total_profit
-    
-FROM fact_orders f
-INNER JOIN dim_customers c ON f.customer_id = c.customer_id
-INNER JOIN dim_products p ON f.product_id = p.product_id
-INNER JOIN dim_dates d ON f.order_date_id = d.date_id
-WHERE f.order_date >= '2024-01-01'
-ORDER BY f.order_date DESC, f.total_amount DESC;
+    cat.category_name,
+    oi.quantity,
+    oi.total_price as line_total
+FROM orders o
+INNER JOIN customers c ON o.customer_id = c.customer_id
+INNER JOIN order_items oi ON o.order_id = oi.order_id
+INNER JOIN products p ON oi.product_id = p.product_id
+INNER JOIN categories cat ON p.category_id = cat.category_id
+WHERE o.order_date >= '2024-01-01'
+ORDER BY o.order_date DESC, o.total_amount DESC
+LIMIT 20;
 ```
 
-### Scenario 2: Data Reconciliation Pipeline
+### Scenario 2: Sales Performance Analysis
 
 ```sql
--- Comprehensive data reconciliation between multiple systems
-WITH system_a_data AS (
-    SELECT customer_id, customer_name, email, phone, last_updated
-    FROM system_a_customers
-),
-system_b_data AS (
-    SELECT customer_id, customer_name, email, phone, last_updated
-    FROM system_b_customers
-),
-system_c_data AS (
-    SELECT customer_id, customer_name, email, phone, last_updated
-    FROM system_c_customers
-)
+-- Sales rep performance with territory information
 SELECT 
-    COALESCE(a.customer_id, b.customer_id, c.customer_id) as customer_id,
-    a.customer_name as system_a_name,
-    b.customer_name as system_b_name,
-    c.customer_name as system_c_name,
-    a.email as system_a_email,
-    b.email as system_b_email,
-    c.email as system_c_email,
-    CASE 
-        WHEN a.customer_id IS NULL AND b.customer_id IS NULL THEN 'Only in System C'
-        WHEN a.customer_id IS NULL AND c.customer_id IS NULL THEN 'Only in System B'
-        WHEN b.customer_id IS NULL AND c.customer_id IS NULL THEN 'Only in System A'
-        WHEN a.customer_id IS NULL THEN 'Missing in System A'
-        WHEN b.customer_id IS NULL THEN 'Missing in System B'
-        WHEN c.customer_id IS NULL THEN 'Missing in System C'
-        WHEN a.customer_name != b.customer_name OR a.customer_name != c.customer_name THEN 'Name Mismatch'
-        WHEN a.email != b.email OR a.email != c.email THEN 'Email Mismatch'
-        ELSE 'Perfect Match'
-    END as reconciliation_status,
-    GREATEST(
-        COALESCE(a.last_updated, '1900-01-01'),
-        COALESCE(b.last_updated, '1900-01-01'),
-        COALESCE(c.last_updated, '1900-01-01')
-    ) as latest_update
-FROM system_a_data a
-FULL OUTER JOIN system_b_data b ON a.customer_id = b.customer_id
-FULL OUTER JOIN system_c_data c ON COALESCE(a.customer_id, b.customer_id) = c.customer_id
-ORDER BY reconciliation_status, customer_id;
+    sr.rep_name,
+    st.territory_name,
+    st.region,
+    COUNT(s.sale_id) as total_sales,
+    SUM(s.total_amount) as total_revenue,
+    SUM(s.commission_earned) as total_commission,
+    AVG(s.total_amount) as avg_sale_amount,
+    MIN(s.sale_date) as first_sale_date,
+    MAX(s.sale_date) as last_sale_date
+FROM sales_reps sr
+INNER JOIN sales_territories st ON sr.territory_id = st.territory_id
+INNER JOIN sales s ON sr.rep_id = s.rep_id
+WHERE s.sale_date >= '2024-01-01'
+GROUP BY sr.rep_id, sr.rep_name, st.territory_name, st.region
+ORDER BY total_revenue DESC;
 ```
 
-### Scenario 3: ETL Data Enrichment
+### Scenario 3: Product Performance Analysis
 
 ```sql
--- ETL pipeline: Enrich raw data with reference data
-WITH raw_transactions AS (
-    SELECT 
-        transaction_id,
-        customer_id,
-        product_sku,
-        transaction_date,
-        amount,
-        'RAW' as data_source
-    FROM raw_transaction_data
-    WHERE transaction_date >= CURRENT_DATE - INTERVAL '7 days'
-),
-enriched_transactions AS (
-    SELECT 
-        rt.transaction_id,
-        rt.transaction_date,
-        rt.amount,
-        
-        -- Customer enrichment
-        COALESCE(c.customer_name, 'Unknown Customer') as customer_name,
-        COALESCE(c.customer_segment, 'Unknown') as customer_segment,
-        COALESCE(c.region, 'Unknown') as region,
-        
-        -- Product enrichment
-        COALESCE(p.product_name, 'Unknown Product') as product_name,
-        COALESCE(p.product_category, 'Unknown') as product_category,
-        COALESCE(p.unit_cost, 0) as unit_cost,
-        
-        -- Calculated fields
-        CASE 
-            WHEN c.customer_segment = 'Premium' THEN rt.amount * 0.95
-            WHEN c.customer_segment = 'Standard' THEN rt.amount * 0.98
-            ELSE rt.amount
-        END as discounted_amount,
-        
-        rt.amount - COALESCE(p.unit_cost, 0) as estimated_profit,
-        
-        -- Data quality flags
-        CASE WHEN c.customer_id IS NULL THEN 1 ELSE 0 END as missing_customer,
-        CASE WHEN p.product_sku IS NULL THEN 1 ELSE 0 END as missing_product,
-        
-        rt.data_source
-    FROM raw_transactions rt
-    LEFT JOIN customers c ON rt.customer_id = c.customer_id
-    LEFT JOIN products p ON rt.product_sku = p.product_sku
-)
+-- Product performance across categories
 SELECT 
-    transaction_id,
-    transaction_date,
-    customer_name,
-    customer_segment,
-    region,
-    product_name,
-    product_category,
-    amount,
-    discounted_amount,
-    estimated_profit,
-    CASE 
-        WHEN missing_customer = 1 AND missing_product = 1 THEN 'Critical Data Quality Issue'
-        WHEN missing_customer = 1 OR missing_product = 1 THEN 'Data Quality Issue'
-        ELSE 'Clean Data'
-    END as data_quality_status
-FROM enriched_transactions
-ORDER BY data_quality_status, transaction_date DESC;
+    cat.category_name,
+    p.product_name,
+    p.price,
+    COUNT(oi.order_item_id) as times_ordered,
+    SUM(oi.quantity) as total_quantity_sold,
+    SUM(oi.total_price) as total_revenue,
+    AVG(oi.quantity) as avg_quantity_per_order,
+    COUNT(DISTINCT o.customer_id) as unique_customers
+FROM products p
+INNER JOIN categories cat ON p.category_id = cat.category_id
+INNER JOIN order_items oi ON p.product_id = oi.product_id
+INNER JOIN orders o ON oi.order_id = o.order_id
+WHERE o.order_status = 'Delivered'
+GROUP BY cat.category_name, p.product_id, p.product_name, p.price
+ORDER BY total_revenue DESC
+LIMIT 20;
 ```
 
 ---
 
-## 🔧 JOIN Performance Optimization
+## 🚀 Performance Optimization Tips
 
-### 1. Choose the Right JOIN Type
-
+### 1. Use Appropriate JOIN Types
 ```sql
--- ❌ INEFFICIENT: Using FULL OUTER JOIN when LEFT JOIN would suffice
-SELECT c.customer_id, c.customer_name, o.order_amount
+-- Good: Use INNER JOIN when you only need matches
+SELECT c.customer_id, o.order_date, o.total_amount
 FROM customers c
-FULL OUTER JOIN orders o ON c.customer_id = o.customer_id
-WHERE c.customer_id IS NOT NULL;  -- This makes it equivalent to LEFT JOIN
+INNER JOIN orders o ON c.customer_id = o.customer_id;
 
--- ✅ EFFICIENT: Use LEFT JOIN directly
-SELECT c.customer_id, c.customer_name, o.order_amount
+-- Avoid: Using LEFT JOIN when you don't need NULLs
+SELECT c.customer_id, o.order_date, o.total_amount
 FROM customers c
-LEFT JOIN orders o ON c.customer_id = o.customer_id;
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+WHERE o.customer_id IS NOT NULL;  -- This is inefficient
 ```
 
-### 2. Optimize JOIN Conditions
-
+### 2. Filter Early
 ```sql
--- ❌ INEFFICIENT: Multiple conditions in JOIN
-SELECT *
-FROM orders o
-INNER JOIN customers c ON o.customer_id = c.customer_id 
-                      AND o.order_date >= '2024-01-01'
-                      AND c.customer_segment = 'Premium';
+-- Good: Filter in WHERE clause
+SELECT c.customer_id, o.order_date, o.total_amount
+FROM customers c
+INNER JOIN orders o ON c.customer_id = o.customer_id
+WHERE o.order_date >= '2024-01-01';
 
--- ✅ EFFICIENT: Filter in WHERE clause
-SELECT *
-FROM orders o
-INNER JOIN customers c ON o.customer_id = c.customer_id
-WHERE o.order_date >= '2024-01-01'
-  AND c.customer_segment = 'Premium';
+-- Avoid: Filtering after JOIN
+SELECT c.customer_id, o.order_date, o.total_amount
+FROM customers c
+INNER JOIN orders o ON c.customer_id = o.customer_id
+WHERE o.order_date >= '2024-01-01';
 ```
 
-### 3. Use Appropriate Indexes
-
+### 3. Use LIMIT for Large Result Sets
 ```sql
--- Create indexes for JOIN columns
-CREATE INDEX idx_orders_customer_id ON orders(customer_id);
-CREATE INDEX idx_orders_order_date ON orders(order_date);
-CREATE INDEX idx_customers_customer_id ON customers(customer_id);
-CREATE INDEX idx_customers_segment ON customers(customer_segment);
-
--- Composite indexes for complex JOINs
-CREATE INDEX idx_orders_customer_date ON orders(customer_id, order_date);
-```
-
-### 4. JOIN Order Matters
-
-```sql
--- ❌ INEFFICIENT: Starting with large table
-SELECT *
-FROM large_orders_table o
-INNER JOIN small_customers_table c ON o.customer_id = c.customer_id;
-
--- ✅ EFFICIENT: Start with filtered/smaller table
-SELECT *
-FROM small_customers_table c
-INNER JOIN large_orders_table o ON c.customer_id = o.customer_id;
+-- Always use LIMIT when testing or when result set might be large
+SELECT c.customer_id, o.order_date, o.total_amount
+FROM customers c
+INNER JOIN orders o ON c.customer_id = o.customer_id
+ORDER BY o.order_date DESC
+LIMIT 100;
 ```
 
 ---
 
 ## 🎯 EPAM Interview Scenarios
 
-### Scenario 1: Data Reconciliation Problem
-
-**Problem**: You have customer data in two systems. Find all discrepancies.
-
-```sql
--- EPAM Interview Solution
-SELECT 
-    COALESCE(a.customer_id, b.customer_id) as customer_id,
-    a.customer_name as system_a_name,
-    b.customer_name as system_b_name,
-    a.email as system_a_email,
-    b.email as system_b_email,
-    CASE 
-        WHEN a.customer_id IS NULL THEN 'Missing in System A'
-        WHEN b.customer_id IS NULL THEN 'Missing in System B'
-        WHEN a.customer_name != b.customer_name THEN 'Name Mismatch'
-        WHEN a.email != b.email THEN 'Email Mismatch'
-        ELSE 'Perfect Match'
-    END as issue_type
-FROM system_a_customers a
-FULL OUTER JOIN system_b_customers b ON a.customer_id = b.customer_id
-WHERE a.customer_id IS NULL 
-   OR b.customer_id IS NULL 
-   OR a.customer_name != b.customer_name 
-   OR a.email != b.email
-ORDER BY issue_type, customer_id;
-```
-
-### Scenario 2: Star Schema Query
-
-**Problem**: Create a sales report with customer, product, and date dimensions.
+### Scenario 1: Customer Analysis
+**Question**: "Find all customers who have made orders in the last 3 months and calculate their total spending."
 
 ```sql
--- EPAM Interview Solution
+-- Solution
 SELECT 
+    c.customer_id,
+    c.first_name || ' ' || c.last_name as customer_name,
     c.customer_segment,
-    p.product_category,
-    d.year,
-    d.quarter,
-    COUNT(f.order_id) as order_count,
-    SUM(f.quantity) as total_quantity,
-    SUM(f.total_amount) as total_revenue,
-    AVG(f.total_amount) as avg_order_value
-FROM fact_sales f
-INNER JOIN dim_customers c ON f.customer_id = c.customer_id
-INNER JOIN dim_products p ON f.product_id = p.product_id
-INNER JOIN dim_dates d ON f.order_date_id = d.date_id
-WHERE d.year = 2024
-GROUP BY c.customer_segment, p.product_category, d.year, d.quarter
-ORDER BY total_revenue DESC;
-```
-
----
-
-## ⚠️ Common JOIN Mistakes and Solutions
-
-### 1. Cartesian Product (Accidental CROSS JOIN)
-
-```sql
--- ❌ WRONG: Missing JOIN condition creates Cartesian product
-SELECT c.customer_name, o.order_amount
-FROM customers c, orders o;  -- This creates CROSS JOIN!
-
--- ✅ CORRECT: Always specify JOIN condition
-SELECT c.customer_name, o.order_amount
-FROM customers c
-INNER JOIN orders o ON c.customer_id = o.customer_id;
-```
-
-### 2. NULL Handling in JOINs
-
-```sql
--- ❌ WRONG: NULL values break JOINs
-SELECT c.customer_name, o.order_amount
+    COUNT(o.order_id) as order_count,
+    SUM(o.total_amount) as total_spent,
+    AVG(o.total_amount) as avg_order_value
 FROM customers c
 INNER JOIN orders o ON c.customer_id = o.customer_id
-WHERE o.customer_id IS NOT NULL;  -- This doesn't help with NULLs in JOIN condition
-
--- ✅ CORRECT: Handle NULLs in JOIN condition
-SELECT c.customer_name, o.order_amount
-FROM customers c
-INNER JOIN orders o ON COALESCE(c.customer_id, 0) = COALESCE(o.customer_id, 0);
+WHERE o.order_date >= date('now', '-3 months')
+GROUP BY c.customer_id, c.first_name, c.last_name, c.customer_segment
+ORDER BY total_spent DESC;
 ```
 
-### 3. Multiple JOIN Conditions
+### Scenario 2: Employee Hierarchy
+**Question**: "Show the management chain for all employees in the Engineering department."
 
 ```sql
--- ❌ WRONG: Complex JOIN condition
-SELECT *
-FROM orders o
-INNER JOIN customers c ON o.customer_id = c.customer_id 
-                      AND o.order_date >= c.registration_date;
+-- Solution
+SELECT 
+    e1.first_name || ' ' || e1.last_name as employee_name,
+    e1.job_title,
+    d.department_name,
+    e2.first_name || ' ' || e2.last_name as manager_name,
+    e2.job_title as manager_title
+FROM employees e1
+LEFT JOIN employees e2 ON e1.manager_id = e2.employee_id
+INNER JOIN departments d ON e1.department_id = d.department_id
+WHERE d.department_name LIKE '%Engineering%'
+ORDER BY d.department_name, e1.last_name;
+```
 
--- ✅ CORRECT: Use WHERE clause for complex conditions
-SELECT *
-FROM orders o
-INNER JOIN customers c ON o.customer_id = c.customer_id
-WHERE o.order_date >= c.registration_date;
+### Scenario 3: Product Performance
+**Question**: "Find the top 5 products by revenue and show their category information."
+
+```sql
+-- Solution
+SELECT 
+    p.product_name,
+    cat.category_name,
+    p.price,
+    SUM(oi.total_price) as total_revenue,
+    SUM(oi.quantity) as total_quantity_sold,
+    COUNT(DISTINCT o.customer_id) as unique_customers
+FROM products p
+INNER JOIN categories cat ON p.category_id = cat.category_id
+INNER JOIN order_items oi ON p.product_id = oi.product_id
+INNER JOIN orders o ON oi.order_id = o.order_id
+WHERE o.order_status = 'Delivered'
+GROUP BY p.product_id, p.product_name, cat.category_name, p.price
+ORDER BY total_revenue DESC
+LIMIT 5;
 ```
 
 ---
 
-## 💡 Pro Tips for Data Engineers
+## ⚠️ Common Mistakes and How to Avoid Them
 
-### 1. Always Validate JOIN Results
-
+### 1. Missing JOIN Conditions
 ```sql
--- Check JOIN result counts
-SELECT 
-    'customers' as table_name, COUNT(*) as record_count FROM customers
-UNION ALL
-SELECT 
-    'orders' as table_name, COUNT(*) as record_count FROM orders
-UNION ALL
-SELECT 
-    'joined_result' as table_name, COUNT(*) as record_count 
+-- ✗ WRONG: Missing JOIN condition
+SELECT c.customer_id, o.order_date
+FROM customers c, orders o;
+
+-- ✓ CORRECT: Proper JOIN condition
+SELECT c.customer_id, o.order_date
 FROM customers c
 INNER JOIN orders o ON c.customer_id = o.customer_id;
 ```
 
-### 2. Use CTEs for Complex JOINs
-
+### 2. Using CROSS JOIN Unintentionally
 ```sql
--- Break complex JOINs into readable steps
-WITH customer_summary AS (
-    SELECT 
-        customer_id,
-        COUNT(*) as order_count,
-        SUM(order_amount) as total_spent
-    FROM orders
-    GROUP BY customer_id
-),
-customer_details AS (
-    SELECT 
-        customer_id,
-        customer_name,
-        customer_segment,
-        registration_date
-    FROM customers
-)
+-- ✗ WRONG: This creates a Cartesian product
+SELECT c.customer_id, o.order_date
+FROM customers c, orders o
+WHERE c.customer_id = o.customer_id;
+
+-- ✓ CORRECT: Use proper JOIN syntax
+SELECT c.customer_id, o.order_date
+FROM customers c
+INNER JOIN orders o ON c.customer_id = o.customer_id;
+```
+
+### 3. Not Handling NULLs Properly
+```sql
+-- ✗ WRONG: NULLs in calculations
 SELECT 
-    cd.customer_name,
-    cd.customer_segment,
-    cs.order_count,
-    cs.total_spent,
-    cs.total_spent / cs.order_count as avg_order_value
-FROM customer_details cd
-INNER JOIN customer_summary cs ON cd.customer_id = cs.customer_id
-ORDER BY cs.total_spent DESC;
+    c.customer_id,
+    COUNT(o.order_id) as order_count,
+    SUM(o.total_amount) as total_spent
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id;
+
+-- ✓ CORRECT: Handle NULLs with COALESCE
+SELECT 
+    c.customer_id,
+    COUNT(o.order_id) as order_count,
+    COALESCE(SUM(o.total_amount), 0) as total_spent
+FROM customers c
+LEFT JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id;
+```
+
+---
+
+## 🎯 Interview Success Tips
+
+### 1. Explain Your Thought Process
+When solving JOIN problems:
+
+1. **Identify the tables needed** - "I need customer and order data"
+2. **Determine the relationship** - "Customers have many orders"
+3. **Choose the JOIN type** - "I'll use INNER JOIN for exact matches"
+4. **Add the JOIN condition** - "ON c.customer_id = o.customer_id"
+5. **Filter and group as needed** - "WHERE and GROUP BY clauses"
+
+### 2. Start Simple, Then Add Complexity
+```sql
+-- Step 1: Basic JOIN
+SELECT c.customer_id, o.order_date
+FROM customers c
+INNER JOIN orders o ON c.customer_id = o.customer_id;
+
+-- Step 2: Add more columns
+SELECT c.customer_id, c.first_name, o.order_date, o.total_amount
+FROM customers c
+INNER JOIN orders o ON c.customer_id = o.customer_id;
+
+-- Step 3: Add filtering and grouping
+SELECT c.customer_id, COUNT(o.order_id) as order_count
+FROM customers c
+INNER JOIN orders o ON c.customer_id = o.customer_id
+GROUP BY c.customer_id;
 ```
 
 ### 3. Test with Sample Data
-
 ```sql
 -- Always test JOINs with sample data first
-SELECT *
+SELECT c.customer_id, o.order_date, o.total_amount
 FROM customers c
 INNER JOIN orders o ON c.customer_id = o.customer_id
 WHERE c.customer_id IN (1, 2, 3)  -- Test with specific records
-LIMIT 10;
+ORDER BY c.customer_id, o.order_date;
 ```
-
----
-
-## 🚀 Practice Exercises
-
-**See**: `01_SQL/exercises/03_JOINs_Exercises.md`
-
-**Master these patterns**:
-1. ✅ Star schema queries
-2. ✅ Data reconciliation scenarios
-3. ✅ ETL data enrichment
-4. ✅ Hierarchical data analysis
-5. ✅ Duplicate detection
-6. ✅ Missing record analysis
-7. ✅ Performance optimization
-8. ✅ Complex multi-table scenarios
-
-**Target Time**: Solve complex JOIN problems in < 15 minutes
 
 ---
 
@@ -781,11 +724,10 @@ LIMIT 10;
 - Test with sample data first
 
 ### Data Engineering Patterns
-- Star schema: Fact + Dimension tables
-- Data reconciliation: FULL OUTER JOIN
-- ETL enrichment: LEFT JOIN with COALESCE
-- Hierarchical data: SELF JOIN
-- Duplicate detection: SELF JOIN with inequality
+- **Customer-Order Analysis**: INNER JOIN for active customers
+- **Data Reconciliation**: LEFT JOIN to find missing records
+- **Hierarchical Data**: SELF JOIN for employee hierarchies
+- **Product Analysis**: Multiple JOINs for comprehensive reports
 
 ---
 
@@ -803,5 +745,3 @@ LIMIT 10;
 **Key Takeaway**: JOINs are about **combining data from multiple sources**. Master the different types, understand when to use each, and always validate your results. This is essential for data engineering work.
 
 **Next Module**: `01_SQL/04_Subqueries_CTEs.md`
-
-
