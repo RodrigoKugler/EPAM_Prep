@@ -69,6 +69,8 @@ JOIN departments d ON e.department_id = d.department_id;
 - **customers**: customer_id, first_name, last_name, city, customer_segment, total_spent, is_vip
 - **orders**: order_id, customer_id, order_date, total_amount, order_status
 - **sales**: sale_id, rep_id, territory_id, sale_date, total_amount, commission_earned
+- **sales_reps**: rep_id, rep_name, territory_id, commission_rate, quota
+- **sales_territories**: territory_id, territory_name, region, target_revenue
 
 ### **Quick Schema Check:**
 ```sql
@@ -78,7 +80,8 @@ SELECT name FROM sqlite_master WHERE type='table' ORDER BY name;
 -- Check record counts
 SELECT 'employees' as table_name, COUNT(*) as record_count FROM employees
 UNION ALL SELECT 'orders', COUNT(*) FROM orders
-UNION ALL SELECT 'customers', COUNT(*) FROM customers;
+UNION ALL SELECT 'customers', COUNT(*) FROM customers
+UNION ALL SELECT 'sales', COUNT(*) FROM sales;
 ```
 
 ---
